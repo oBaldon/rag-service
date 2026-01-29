@@ -1,0 +1,131 @@
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+from intelireg import settings
+from intelireg.retrieval import hybrid_retrieve_rrf
+
+
+def ensure_runs_dir() -> Path:
+    runs = Path("storage") / "runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    return runs
+
+
+def build_output(
+    question: str,
+    version_id: Optional[str],
+    pipeline_version: str,
+    embedding_model_id: str,
+    n1_fts: int,
+    n2_vec: int,
+    rrf_k: int,
+    top_k: int,
+) -> Dict[str, Any]:
+    rows = hybrid_retrieve_rrf(
+        question=question,
+        pipeline_version=pipeline_version,
+        embedding_model_id=embedding_model_id,
+        n1_fts=n1_fts,
+        n2_vec=n2_vec,
+        rrf_k=rrf_k,
+        top_k=top_k,
+        version_id=version_id,
+    )
+
+    results = []
+    for i, r in enumerate(rows, start=1):
+        results.append(
+            {
+                "rank": i,
+                "rrf_score": r["rrf_score"],
+                "fts_rank": r["fts_rank"],
+                "fts_score": r["fts_score"],
+                "vec_rank": r["vec_rank"],
+                "vec_distance": r["vec_distance"],
+                "chunk": {
+                    "chunk_id": r["chunk_id"],
+                    "version_id": r["version_id"],
+                    "chunk_index": r["chunk_index"],
+                    "tokens_count": r["tokens_count"],
+                    "text": r["text"],
+                },
+                "document": r["document"],
+                "citations": r["node_refs"] or [],
+            }
+        )
+
+    return {
+        "query": question,
+        "filters": {
+            "version_id": version_id,
+            "pipeline_version": pipeline_version,
+            "embedding_model_id": embedding_model_id,
+        },
+        "params": {
+            "n1_fts": n1_fts,
+            "n2_vec": n2_vec,
+            "rrf_k": rrf_k,
+            "top_k": top_k,
+        },
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "results": results,
+    }
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description="query_rag MVP (sem LLM): retrieval híbrido (FTS + vetorial) + RRF -> JSON"
+    )
+    ap.add_argument("--q", "--question", dest="question", required=True)
+    ap.add_argument("--version-id", default=None, help="Filtra a busca por uma versão específica")
+    ap.add_argument("--pipeline-version", default=settings.PIPELINE_VERSION)
+    ap.add_argument("--embedding-model-id", default=settings.EMBEDDING_MODEL_ID)
+
+    ap.add_argument("--n1-fts", type=int, default=settings.RETRIEVAL_N1)
+    ap.add_argument("--n2-vec", type=int, default=settings.RETRIEVAL_N2)
+    ap.add_argument("--rrf-k", type=int, default=settings.RRF_K)
+    ap.add_argument("--top-k", type=int, default=settings.TOP_K_DEFAULT)
+
+    ap.add_argument(
+        "--out",
+        default=None,
+        help="Caminho do JSON de saída. Default: storage/runs/<timestamp>_query.json",
+    )
+    args = ap.parse_args()
+
+    out = build_output(
+        question=args.question,
+        version_id=args.version_id,
+        pipeline_version=args.pipeline_version,
+        embedding_model_id=args.embedding_model_id,
+        n1_fts=args.n1_fts,
+        n2_vec=args.n2_vec,
+        rrf_k=args.rrf_k,
+        top_k=args.top_k,
+    )
+
+    runs_dir = ensure_runs_dir()
+    if args.out:
+        out_path = Path(args.out)
+    else:
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        out_path = runs_dir / f"{ts}_query.json"
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(
+    json.dumps(out, ensure_ascii=False, indent=2, default=str),
+    encoding="utf-8",
+    )
+
+
+    print(str(out_path))
+
+
+if __name__ == "__main__":
+    main()
