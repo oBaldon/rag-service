@@ -8,6 +8,7 @@ import random
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+from intelireg import settings
 from intelireg.db import get_conn
 from intelireg.jobs import fetch_next_job, mark_done, mark_failed
 
@@ -47,9 +48,9 @@ def load_nodes(cur, version_id: str) -> List[Dict[str, Any]]:
         {
             "node_id": r[0],
             "path": r[1],
-            "heading_text": r[2],
+            "heading_text": r[2] or "",
             "heading_level": r[3],
-            "text": r[4],
+            "text": r[4] or "",
             "node_index": r[5],
         }
         for r in rows
@@ -59,20 +60,20 @@ def load_nodes(cur, version_id: str) -> List[Dict[str, Any]]:
 def build_chunks_from_nodes(
     nodes: List[Dict[str, Any]],
     pipeline_version: str,
-    chunk_target_words: int = 450,
-    chunk_min_words: int = 200,
-    chunk_max_words: int = 650,
-    overlap_words: int = 80,
+    chunk_target_words: int,
+    chunk_min_words: int,
+    chunk_max_words: int,
+    overlap_words: int,
 ) -> List[Dict[str, Any]]:
     """
-    Tokenização simplificada (words). No MVP, usamos words ~ tokens.
+    Chunking por "words" (proxy de tokens) para o MVP.
     Overlap respeita fronteiras de node: repete nodes inteiros do final do chunk anterior
     até atingir overlap_words.
     """
+
     def node_segment(n: Dict[str, Any]) -> str:
-        # Mantém heading para contexto/citação
-        h = n["heading_text"].strip()
-        t = (n["text"] or "").strip()
+        h = (n.get("heading_text") or "").strip()
+        t = (n.get("text") or "").strip()
         if h and t:
             return f"{h}\n{t}"
         return h or t
@@ -82,15 +83,16 @@ def build_chunks_from_nodes(
     current_text_parts: List[str] = []
     current_word_count = 0
 
-    def finalize_chunk(chunk_index: int) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]]]:
+    def finalize_chunk(
+        chunk_index: int,
+    ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]]]:
         nonlocal current_nodes, current_text_parts, current_word_count
 
         if not current_text_parts:
             return None, []
 
         chunk_text = "\n\n".join(current_text_parts).strip()
-        words = chunk_text.split()
-        tokens_count = len(words)
+        tokens_count = len(chunk_text.split())  # proxy simples
 
         # node_refs com offsets aproximados (char offsets no texto final)
         node_refs = []
@@ -99,20 +101,24 @@ def build_chunks_from_nodes(
             seg = node_segment(n).strip()
             if not seg:
                 continue
-            # procura seg a partir do cursor (best-effort)
+
             pos = chunk_text.find(seg, cursor)
             if pos < 0:
                 pos = cursor
+
             start = pos
             end = pos + len(seg)
             cursor = end
-            node_refs.append({
-                "node_id": str(n["node_id"]),
-                "path": n["path"],
-                "heading": n["heading_text"],
-                "char_start": start,
-                "char_end": end,
-            })
+
+            node_refs.append(
+                {
+                    "node_id": str(n["node_id"]),
+                    "path": n.get("path"),
+                    "heading": n.get("heading_text"),
+                    "char_start": start,
+                    "char_end": end,
+                }
+            )
 
         chunk_hash = sha256_hex(pipeline_version + "|" + normalize_for_hash(chunk_text))
 
@@ -124,7 +130,7 @@ def build_chunks_from_nodes(
             "tokens_count": tokens_count,
         }
 
-        # preparar overlap (nodes do fim do chunk)
+        # overlap: pega nodes do fim até atingir overlap_words
         overlap: List[Dict[str, Any]] = []
         ow = 0
         for n in reversed(current_nodes):
@@ -202,38 +208,56 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
     """
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # valida status
-            cur.execute("SELECT status FROM document_versions WHERE version_id = %s", (version_id,))
+            # valida versão e status
+            cur.execute(
+                "SELECT status FROM document_versions WHERE version_id = %s",
+                (version_id,),
+            )
             row = cur.fetchone()
             if not row:
                 raise RuntimeError(f"version_id não encontrado: {version_id}")
-            if row[0] != "READY_FOR_INDEX":
-                raise RuntimeError(f"version_id {version_id} status inválido: {row[0]} (esperado READY_FOR_INDEX)")
+
+            status = row[0]
+            if status != "READY_FOR_INDEX":
+                raise RuntimeError(
+                    f"version_id {version_id} status inválido: {status} (esperado READY_FOR_INDEX)"
+                )
 
             nodes = load_nodes(cur, version_id)
             if not nodes:
                 raise RuntimeError(f"version_id {version_id} não possui nodes")
 
-            # idempotência/reindex: limpa pipeline_version anterior (mesma versão)
+            # idempotência/reindex: limpa chunks/embeddings dessa versão + pipeline_version
             cur.execute(
                 """
                 DELETE FROM chunk_embeddings
                 WHERE pipeline_version = %s
                   AND chunk_id IN (
-                    SELECT chunk_id FROM embedding_chunks
+                    SELECT chunk_id
+                    FROM embedding_chunks
                     WHERE version_id = %s AND pipeline_version = %s
                   )
                 """,
                 (pipeline_version, version_id, pipeline_version),
             )
             cur.execute(
-                "DELETE FROM embedding_chunks WHERE version_id = %s AND pipeline_version = %s",
+                """
+                DELETE FROM embedding_chunks
+                WHERE version_id = %s AND pipeline_version = %s
+                """,
                 (version_id, pipeline_version),
             )
 
-            chunks = build_chunks_from_nodes(nodes, pipeline_version=pipeline_version)
+            chunks = build_chunks_from_nodes(
+                nodes,
+                pipeline_version=pipeline_version,
+                chunk_target_words=settings.CHUNK_TARGET_WORDS,
+                chunk_min_words=settings.CHUNK_MIN_WORDS,
+                chunk_max_words=settings.CHUNK_MAX_WORDS,
+                overlap_words=settings.CHUNK_OVERLAP_WORDS,
+            )
 
-            # insere chunks
+            # insere chunks + embeddings
             for c in chunks:
                 cur.execute(
                     """
@@ -255,7 +279,7 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                 )
                 chunk_id = cur.fetchone()[0]
 
-                # embeddings placeholder determinístico (substituir depois por embeddings reais)
+                # embedding placeholder determinístico (substituir depois por embeddings reais)
                 vec = fake_embedding_1536(c["chunk_hash"])
                 cur.execute(
                     """
@@ -267,7 +291,7 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                     (chunk_id, embedding_model_id, pipeline_version, vec),
                 )
 
-            # marca versão indexada
+            # marca versão como indexada
             cur.execute(
                 "UPDATE document_versions SET status = 'INDEXED' WHERE version_id = %s",
                 (version_id,),
@@ -279,12 +303,19 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Index worker MVP: consome IndexVersionJob e gera chunks/FTS/embeddings")
+    ap = argparse.ArgumentParser(
+        description="Index worker MVP: consome IndexVersionJob e gera chunks/FTS/embeddings"
+    )
     ap.add_argument("--once", action="store_true", help="Processa no máximo 1 job e sai")
-    ap.add_argument("--sleep", type=float, default=5.0, help="Sleep quando não houver jobs (segundos)")
+    ap.add_argument(
+        "--sleep",
+        type=float,
+        default=settings.INDEX_WORKER_SLEEP_SECONDS,
+        help="Sleep quando não houver jobs (segundos)",
+    )
     args = ap.parse_args()
 
-    worker_id = os.getenv("WORKER_ID", "index-worker-1")
+    worker_id = os.getenv("WORKER_ID", settings.INDEX_WORKER_ID_DEFAULT)
 
     while True:
         job = fetch_next_job(worker_id=worker_id)
@@ -299,12 +330,16 @@ def main() -> None:
                 raise RuntimeError(f"tipo de job não suportado no MVP: {job.type}")
 
             version_id = job.payload["version_id"]
-            pipeline_version = job.payload.get("pipeline_version", "mvp-v1")
-            embedding_model_id = job.payload.get("embedding_model_id", "text-embedding-3-small@1536")
+
+            # Fonte de verdade: payload do job (fallback no settings)
+            pipeline_version = job.payload.get("pipeline_version", settings.PIPELINE_VERSION)
+            embedding_model_id = job.payload.get("embedding_model_id", settings.EMBEDDING_MODEL_ID)
 
             n = process_index_version(version_id, pipeline_version, embedding_model_id)
             mark_done(job.job_id)
-            print(f"[index_worker] done job_id={job.job_id} version_id={version_id} chunks={n}")
+            print(
+                f"[index_worker] done job_id={job.job_id} version_id={version_id} pipeline={pipeline_version} chunks={n}"
+            )
 
         except Exception as e:
             mark_failed(job.job_id, str(e), backoff_seconds=15)
