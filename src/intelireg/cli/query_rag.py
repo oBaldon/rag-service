@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+from uuid import uuid4
 
 from intelireg import settings
+from intelireg.audit import record_query_run
 from intelireg.retrieval import hybrid_retrieve_rrf
 
 
@@ -110,19 +111,53 @@ def main() -> None:
         top_k=args.top_k,
     )
 
+    # Define output path antes de escrever, para registrar no JSON e na auditoria
     runs_dir = ensure_runs_dir()
     if args.out:
         out_path = Path(args.out)
     else:
         ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         out_path = runs_dir / f"{ts}_query.json"
-
     out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # run_id e metadados úteis (auditáveis)
+    run_id = str(uuid4())
+    out["run_id"] = run_id
+    out["output_path"] = str(out_path)
+
+    # escreve JSON
     out_path.write_text(
-    json.dumps(out, ensure_ascii=False, indent=2, default=str),
-    encoding="utf-8",
+        json.dumps(out, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
     )
 
+    # resumo auditável (ids + scores)
+    selected = [
+        {
+            "rank": r["rank"],
+            "chunk_id": r["chunk"]["chunk_id"],
+            "version_id": r["chunk"]["version_id"],
+            "rrf_score": r["rrf_score"],
+            "fts_rank": r["fts_rank"],
+            "fts_score": r["fts_score"],
+            "vec_rank": r["vec_rank"],
+            "vec_distance": r["vec_distance"],
+        }
+        for r in out["results"]
+    ]
+
+    # grava auditoria no rag_runs (llm_model_id = 'none' é tratado no audit.py)
+    record_query_run(
+        run_id=run_id,
+        question=out["query"],
+        filters=out["filters"],
+        retrieval_params=out["params"],
+        embedding_model_id=out["filters"]["embedding_model_id"],
+        pipeline_version=out["filters"]["pipeline_version"],
+        selected=selected,
+        result_json=out,
+        insufficient_evidence=(len(out["results"]) == 0),
+    )
 
     print(str(out_path))
 
