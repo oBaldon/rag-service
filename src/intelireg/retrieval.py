@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import random
+import re
 from typing import Any, Dict, List, Optional
 
 from intelireg.db import get_conn
+
+_TOKEN_RE = re.compile(r"[a-zA-ZÀ-ÿ0-9]+", re.UNICODE)
 
 
 def normalize_for_hash(s: str) -> str:
@@ -24,6 +27,102 @@ def fake_embedding_1536(seed_hex: str) -> str:
     rng = random.Random(seed)
     vals = [rng.uniform(-1.0, 1.0) for _ in range(1536)]
     return "[" + ",".join(f"{v:.6f}" for v in vals) + "]"
+
+
+_FTS_STOPWORDS = {
+    # PT-BR comuns (MVP): removemos termos "conversacionais" que matam o AND do FTS
+    "quais", "qual", "quais", "que", "o", "a", "os", "as",
+    "um", "uma", "uns", "umas",
+    "de", "do", "da", "dos", "das",
+    "para", "por", "com", "sem", "em", "no", "na", "nos", "nas",
+    "e", "ou",
+    "ter", "têm", "tem", "até", "sobre", "como", "quais", "qual",
+    "regras", "regra", "exigencias", "exigência", "exigências",
+}
+
+
+def _build_fts_keywords_text(question: str, max_terms: int = 8) -> str:
+    """
+    Extrai uma versão "keywordizada" para FTS.
+    Objetivo MVP: evitar que a pergunta inteira gere uma tsquery muito restritiva (AND demais).
+
+    Heurísticas:
+    - mantém tokens alfanuméricos (inclui números)
+    - remove stopwords comuns
+    - prioriza termos de domínio quando presentes (ex.: cannabis, thc)
+    - limita quantidade para não inflar a query
+    """
+    q = (question or "").casefold()
+    tokens = _TOKEN_RE.findall(q)
+    if not tokens:
+        return ""
+
+    # Filtra stopwords e tokens muito curtos (exceto números)
+    filtered: List[str] = []
+    for t in tokens:
+        if t in _FTS_STOPWORDS:
+            continue
+        if t.isdigit():
+            filtered.append(t)
+            continue
+        if len(t) >= 3:
+            filtered.append(t)
+
+    if not filtered:
+        return ""
+
+    # Prioriza domínio
+    priority: List[str] = []
+    for t in ("cannabis", "thc", "anvisa"):
+        if t in filtered and t not in priority:
+            priority.append(t)
+
+    # Completa com o restante, preservando ordem e limitando
+    for t in filtered:
+        if t not in priority:
+            priority.append(t)
+        if len(priority) >= max_terms:
+            break
+
+    return " ".join(priority).strip()
+
+
+def _fts_hits(cur, pipeline_version: str, version_id: Optional[str], ts_func: str, text: str) -> int:
+    """
+    Conta quantos chunks batem com uma tsquery.
+    ts_func: 'websearch' | 'plain' | 'or'
+    """
+    if not text.strip():
+        return 0
+
+    if ts_func == "websearch":
+        q_sql = "websearch_to_tsquery('portuguese', %(q)s)"
+    elif ts_func == "plain":
+        q_sql = "plainto_tsquery('portuguese', %(q)s)"
+    elif ts_func == "or":
+        # OR entre termos: kw1 | kw2 | kw3 ...
+        # Usa to_tsquery para aceitar operador |.
+        # Atenção: tokens precisam ser "seguros" (só alfanuméricos) – já garantido por _TOKEN_RE.
+        parts = [p for p in text.split() if p]
+        or_q = " | ".join(parts)
+        q_sql = "to_tsquery('portuguese', %(q)s)"
+        text = or_q
+    else:
+        raise ValueError(f"ts_func inválida: {ts_func}")
+
+    sql = f"""
+    WITH q AS (SELECT {q_sql} AS q)
+    SELECT COUNT(*)
+    FROM embedding_chunks c
+    JOIN document_versions v ON v.version_id = c.version_id
+    CROSS JOIN q
+    WHERE v.status = 'INDEXED'
+      AND c.pipeline_version = %(pipeline_version)s
+      AND ( %(version_id)s::uuid IS NULL OR c.version_id = %(version_id)s::uuid )
+      AND c.tsv @@ q.q;
+    """
+    cur.execute(sql, {"q": text, "pipeline_version": pipeline_version, "version_id": version_id})
+    return int(cur.fetchone()[0])
 
 
 def embed_query_placeholder(question: str) -> str:
@@ -54,10 +153,22 @@ def hybrid_retrieve_rrf(
     """
     qvec = embed_query_placeholder(question)
 
+    # --- Seleção automática da estratégia FTS (resolve "pergunta natural -> 0 hits") ---
+    # 1) websearch_to_tsquery(question)
+    # 2) plainto_tsquery(keywords(question))
+    # 3) to_tsquery OR entre keywords (mais permissivo)
+    fts_mode = "websearch"
+    fts_text = question
+
     sql = """
     WITH
     q AS (
-      SELECT websearch_to_tsquery('portuguese', %(question)s) AS q
+      SELECT
+        CASE
+          WHEN %(fts_mode)s = 'websearch' THEN websearch_to_tsquery('portuguese', %(fts_text)s)
+          WHEN %(fts_mode)s = 'plain' THEN plainto_tsquery('portuguese', %(fts_text)s)
+          ELSE to_tsquery('portuguese', %(fts_text)s)
+        END AS q
     ),
     fts AS (
       SELECT
@@ -138,20 +249,43 @@ def hybrid_retrieve_rrf(
     LIMIT %(top_k)s;
     """
 
-    params = {
-        "question": question,
-        "pipeline_version": pipeline_version,
-        "embedding_model_id": embedding_model_id,
-        "version_id": version_id,
-        "n1_fts": n1_fts,
-        "n2_vec": n2_vec,
-        "rrf_k": rrf_k,
-        "top_k": top_k,
-        "qvec": qvec,
-    }
-
     with get_conn() as conn:
         with conn.cursor() as cur:
+            # Decide modo do FTS apenas se FTS está habilitado (n1_fts > 0)
+            if n1_fts > 0:
+                hits = _fts_hits(cur, pipeline_version, version_id, "websearch", question)
+                if hits == 0:
+                    kw = _build_fts_keywords_text(question)
+                    hits_kw = _fts_hits(cur, pipeline_version, version_id, "plain", kw)
+                    if hits_kw > 0:
+                        fts_mode = "plain"
+                        fts_text = kw
+                    else:
+                        # Fallback final: OR entre keywords (to_tsquery com '|')
+                        hits_or = _fts_hits(cur, pipeline_version, version_id, "or", kw)
+                        if hits_or > 0:
+                            fts_mode = "or"
+                            # _fts_hits já transformou internamente, mas aqui precisamos do texto OR:
+                            # Reaplica a transformação localmente
+                            parts = [p for p in kw.split() if p]
+                            fts_text = " | ".join(parts)
+                        else:
+                            # mantém websearch com question (vai retornar 0, mas é o comportamento mais "honesto")
+                            fts_mode = "websearch"
+                            fts_text = question
+
+            params = {
+                "pipeline_version": pipeline_version,
+                "embedding_model_id": embedding_model_id,
+                "version_id": version_id,
+                "n1_fts": n1_fts,
+                "n2_vec": n2_vec,
+                "rrf_k": rrf_k,
+                "top_k": top_k,
+                "qvec": qvec,
+                "fts_mode": fts_mode,
+                "fts_text": fts_text,
+            }
             cur.execute(sql, params)
             rows = cur.fetchall()
 
