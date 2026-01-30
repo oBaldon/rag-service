@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -13,13 +14,23 @@ from intelireg.db import get_conn
 from intelireg.jobs import fetch_next_job, mark_done, mark_failed
 
 
+# -------------------- hashing/normalização --------------------
+
 def normalize_for_hash(s: str) -> str:
+    # colapsa whitespace + casefold => determinístico e estável
     return " ".join((s or "").split()).casefold()
 
 
 def sha256_hex(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
+
+def chunk_hash(pipeline_version: str, chunk_text: str) -> str:
+    # IMPORTANTE: não incluir chunk_index (senão texto igual vira hash diferente)
+    return sha256_hex(pipeline_version + "|" + normalize_for_hash(chunk_text))
+
+
+# -------------------- embedding placeholder --------------------
 
 def fake_embedding_1536(seed_hex: str) -> str:
     """
@@ -32,6 +43,8 @@ def fake_embedding_1536(seed_hex: str) -> str:
     vals = [rng.uniform(-1.0, 1.0) for _ in range(1536)]
     return "[" + ",".join(f"{v:.6f}" for v in vals) + "]"
 
+
+# -------------------- DB --------------------
 
 def load_nodes(cur, version_id: str) -> List[Dict[str, Any]]:
     cur.execute(
@@ -57,6 +70,11 @@ def load_nodes(cur, version_id: str) -> List[Dict[str, Any]]:
     ]
 
 
+# -------------------- chunking --------------------
+
+_sentence_split_re = re.compile(r"(?<=[\.\!\?])\s+")
+
+
 def build_chunks_from_nodes(
     nodes: List[Dict[str, Any]],
     pipeline_version: str,
@@ -67,9 +85,19 @@ def build_chunks_from_nodes(
 ) -> List[Dict[str, Any]]:
     """
     Chunking por "words" (proxy de tokens) para o MVP.
-    Overlap respeita fronteiras de node: repete nodes inteiros do final do chunk anterior
-    até atingir overlap_words.
+
+    Correções importantes vs versão anterior:
+    - NÃO cria chunk "só de overlap" (duplica chunk anterior).
+    - Só aplica overlap quando existe um node real (não vazio) a ser adicionado.
+    - Overlap não inclui unidades gigantes (evita repetir mega-node).
+    - chunk_hash independe de chunk_index (texto igual => hash igual).
+    - Dedup em memória para evitar chunks repetidos.
+    - Split "soft" de node muito grande, baseado no target, para evitar chunk gigantesco.
     """
+
+    # Uma "unidade" é o menor bloco adicionável ao chunk.
+    # Pode ser um node inteiro ou um pedaço (split) de um node muito grande.
+    Unit = Dict[str, Any]
 
     def node_segment(n: Dict[str, Any]) -> str:
         h = (n.get("heading_text") or "").strip()
@@ -78,128 +106,295 @@ def build_chunks_from_nodes(
             return f"{h}\n{t}"
         return h or t
 
-    chunks: List[Dict[str, Any]] = []
-    current_nodes: List[Dict[str, Any]] = []
-    current_text_parts: List[str] = []
-    current_word_count = 0
+    def _split_by_paragraphs(text: str) -> List[str]:
+        # tenta preservar blocos em normas: quebra por linhas em branco ou \n
+        if "\n\n" in text:
+            parts = [p.strip() for p in text.split("\n\n")]
+        elif "\n" in text:
+            parts = [p.strip() for p in text.split("\n")]
+        else:
+            parts = [text.strip()]
+        return [p for p in parts if p]
 
-    def finalize_chunk(
-        chunk_index: int,
-    ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]]]:
-        nonlocal current_nodes, current_text_parts, current_word_count
+    def _split_by_sentences(text: str) -> List[str]:
+        parts = [p.strip() for p in _sentence_split_re.split(text.strip())]
+        return [p for p in parts if p]
 
-        if not current_text_parts:
-            return None, []
+    def split_segment_soft(seg: str) -> List[str]:
+        """
+        Divide um segmento grande em pedaços ~target para evitar chunk gigante.
+        Mesmo que CHUNK_MAX_WORDS seja alto, aqui usamos um "soft max":
+          soft_max = min(chunk_max_words, chunk_target_words * 2)
+        e part_max = min(chunk_max_words, chunk_target_words)
+        """
+        seg = (seg or "").strip()
+        if not seg:
+            return []
 
-        chunk_text = "\n\n".join(current_text_parts).strip()
-        tokens_count = len(chunk_text.split())  # proxy simples
+        words = seg.split()
+        if len(words) <= max(1, chunk_max_words):
+            # ainda pode ser enorme se chunk_max_words for muito alto;
+            # então aplicamos "soft cap" relativo ao target:
+            soft_max = min(chunk_max_words, max(chunk_target_words * 2, chunk_min_words))
+            if len(words) <= soft_max:
+                return [seg]
 
-        # node_refs com offsets aproximados (char offsets no texto final)
-        node_refs = []
-        cursor = 0
-        for n in current_nodes:
-            seg = node_segment(n).strip()
-            if not seg:
-                continue
+        # tentar separar heading do corpo para repetir o heading em cada pedaço
+        if "\n" in seg:
+            head, body = seg.split("\n", 1)
+            head = head.strip()
+            body = body.strip()
+        else:
+            head, body = "", seg
 
-            pos = chunk_text.find(seg, cursor)
-            if pos < 0:
-                pos = cursor
+        # quanto cabe por pedaço (inclui heading repetido)
+        head_words = len(head.split()) if head else 0
+        part_max = min(chunk_max_words, max(chunk_target_words, chunk_min_words, 1))
+        budget = max(50, part_max - head_words)  # garante algum corpo por pedaço
 
-            start = pos
-            end = pos + len(seg)
-            cursor = end
+        # preferir parágrafos, depois sentenças, depois palavras
+        chunks_body: List[str] = []
+        candidates = _split_by_paragraphs(body)
+        if len(candidates) == 1 and len(candidates[0].split()) > budget:
+            candidates = _split_by_sentences(body)
+        if len(candidates) == 1 and len(candidates[0].split()) > budget:
+            # fallback: palavra a palavra
+            candidates = body.split()
 
-            node_refs.append(
+            buf_words: List[str] = []
+            for w in candidates:
+                buf_words.append(w)
+                if len(buf_words) >= budget:
+                    chunks_body.append(" ".join(buf_words).strip())
+                    buf_words = []
+            if buf_words:
+                chunks_body.append(" ".join(buf_words).strip())
+        else:
+            buf: List[str] = []
+            buf_wc = 0
+            for c in candidates:
+                wc = len(c.split())
+                if buf and (buf_wc + wc) > budget:
+                    chunks_body.append("\n".join(buf).strip())
+                    buf = []
+                    buf_wc = 0
+                buf.append(c)
+                buf_wc += wc
+            if buf:
+                chunks_body.append("\n".join(buf).strip())
+
+        out: List[str] = []
+        for cb in chunks_body:
+            if head and cb:
+                out.append(f"{head}\n{cb}".strip())
+            else:
+                out.append((cb or head).strip())
+        return [x for x in out if x]
+
+    def node_to_units(n: Dict[str, Any]) -> List[Unit]:
+        seg = node_segment(n).strip()
+        if not seg:
+            return []
+        parts = split_segment_soft(seg)
+        units: List[Unit] = []
+        for idx, p in enumerate(parts):
+            units.append(
                 {
                     "node_id": str(n["node_id"]),
                     "path": n.get("path"),
                     "heading": n.get("heading_text"),
+                    "text": p.strip(),
+                    "part_index": idx,
+                }
+            )
+        return units
+
+    def unit_words(u: Unit) -> int:
+        return len((u.get("text") or "").split())
+
+    # estado do chunk atual
+    chunks: List[Dict[str, Any]] = []
+    current_units: List[Unit] = []
+    current_word_count = 0
+    current_has_new_content = False  # <- crucial: evita chunk "só de overlap"
+
+    overlap_buffer: List[Unit] = []
+    seen_chunk_hashes: set[str] = set()
+    last_norm: Optional[str] = None
+
+    def apply_overlap_if_needed() -> None:
+        nonlocal current_units, current_word_count, overlap_buffer
+        if current_units:
+            return
+        if not overlap_buffer:
+            return
+        # aplica overlap sem marcar como "conteúdo novo"
+        for ou in overlap_buffer:
+            txt = (ou.get("text") or "").strip()
+            if not txt:
+                continue
+            current_units.append(ou)
+            current_word_count += len(txt.split())
+        overlap_buffer = []
+
+    def compute_overlap_from_current() -> List[Unit]:
+        if overlap_words <= 0:
+            return []
+        overlap: List[Unit] = []
+        ow = 0
+        for u in reversed(current_units):
+            w = unit_words(u)
+            if w <= 0:
+                continue
+            # se uma unidade sozinha já excede overlap_words, NÃO repetimos ela
+            # (evita repetir mega-node/mega-chunk)
+            if w > overlap_words:
+                return []
+            overlap.append(u)
+            ow += w
+            if ow >= overlap_words:
+                break
+        overlap.reverse()
+        return overlap
+
+    def finalize_chunk(chunk_index: int) -> Tuple[Optional[Dict[str, Any]], List[Unit]]:
+        nonlocal current_units, current_word_count, current_has_new_content, last_norm
+
+        if not current_units:
+            return None, []
+
+        # se não adicionou nada novo (apenas overlap), não emite chunk
+        if not current_has_new_content:
+            # limpa estado e não propaga overlap (senão pode ficar loopando)
+            current_units = []
+            current_word_count = 0
+            current_has_new_content = False
+            return None, []
+
+        parts = [(u.get("text") or "").strip() for u in current_units if (u.get("text") or "").strip()]
+        if not parts:
+            current_units = []
+            current_word_count = 0
+            current_has_new_content = False
+            return None, []
+
+        chunk_text = "\n\n".join(parts).strip()
+        norm = normalize_for_hash(chunk_text)
+        if last_norm == norm:
+            # evita duplicar por algum bug residual
+            current_units = []
+            current_word_count = 0
+            current_has_new_content = False
+            return None, []
+
+        h = chunk_hash(pipeline_version, chunk_text)
+        if h in seen_chunk_hashes:
+            current_units = []
+            current_word_count = 0
+            current_has_new_content = False
+            return None, []
+
+        seen_chunk_hashes.add(h)
+        last_norm = norm
+
+        tokens_count = len(chunk_text.split())  # proxy simples
+
+        # node_refs com offsets determinísticos (sem find)
+        node_refs = []
+        cursor = 0
+        for i, u in enumerate(current_units):
+            seg = (u.get("text") or "").strip()
+            if not seg:
+                continue
+            if i > 0:
+                cursor += 2  # "\n\n"
+            start = cursor
+            end = start + len(seg)
+            cursor = end
+            node_refs.append(
+                {
+                    "node_id": u.get("node_id"),
+                    "path": u.get("path"),
+                    "heading": u.get("heading"),
                     "char_start": start,
                     "char_end": end,
                 }
             )
 
-        chunk_hash = sha256_hex(pipeline_version + "|" + normalize_for_hash(chunk_text))
+        overlap = compute_overlap_from_current()
 
         chunk = {
             "chunk_index": chunk_index,
-            "chunk_hash": chunk_hash,
+            "chunk_hash": h,
             "text": chunk_text,
             "node_refs": node_refs,
             "tokens_count": tokens_count,
         }
 
-        # overlap: pega nodes do fim até atingir overlap_words
-        overlap: List[Dict[str, Any]] = []
-        ow = 0
-        for n in reversed(current_nodes):
-            seg = node_segment(n)
-            w = len(seg.split())
-            if w == 0:
-                continue
-            overlap.append(n)
-            ow += w
-            if ow >= overlap_words:
-                break
-        overlap = list(reversed(overlap))
-
-        # reset
-        current_nodes = []
-        current_text_parts = []
+        # reset estado
+        current_units = []
         current_word_count = 0
+        current_has_new_content = False
 
         return chunk, overlap
 
+    # transforma nodes -> units e processa
     chunk_idx = 0
-    overlap_buffer: List[Dict[str, Any]] = []
 
     for n in nodes:
-        seg = node_segment(n).strip()
-        if not seg:
+        units = node_to_units(n)
+        if not units:
+            # node vazio: NÃO aplica overlap aqui (evita chunk só de overlap)
             continue
-        seg_words = len(seg.split())
 
-        # se começando um novo chunk, aplica overlap
-        if not current_text_parts and overlap_buffer:
-            for on in overlap_buffer:
-                oseg = node_segment(on).strip()
-                if not oseg:
-                    continue
-                current_nodes.append(on)
-                current_text_parts.append(oseg)
-                current_word_count += len(oseg.split())
-            overlap_buffer = []
+        for u in units:
+            u_text = (u.get("text") or "").strip()
+            if not u_text:
+                continue
 
-        # se estoura max e já tem mínimo, fecha chunk
-        if (current_word_count + seg_words) > chunk_max_words and current_word_count >= chunk_min_words:
-            chunk, overlap = finalize_chunk(chunk_idx)
-            if chunk:
-                chunks.append(chunk)
-                chunk_idx += 1
-            overlap_buffer = overlap
+            u_words = len(u_text.split())
 
-        # adiciona node atual
-        current_nodes.append(n)
-        current_text_parts.append(seg)
-        current_word_count += seg_words
+            # Se estamos para começar chunk novo e temos overlap pendente, aplica agora
+            apply_overlap_if_needed()
 
-        # se atingiu target e já tem mínimo, fecha chunk
-        if current_word_count >= chunk_target_words and current_word_count >= chunk_min_words:
-            chunk, overlap = finalize_chunk(chunk_idx)
-            if chunk:
-                chunks.append(chunk)
-                chunk_idx += 1
-            overlap_buffer = overlap
+            # Se adicionar estoura max e já temos mínimo, fecha chunk antes de adicionar u
+            if (
+                current_units
+                and (current_word_count + u_words) > chunk_max_words
+                and current_word_count >= chunk_min_words
+            ):
+                chunk, overlap = finalize_chunk(chunk_idx)
+                if chunk:
+                    chunks.append(chunk)
+                    chunk_idx += 1
+                overlap_buffer = overlap
 
-    # flush final
-    if current_text_parts:
+                # novo chunk: aplica overlap imediatamente (para o mesmo u)
+                apply_overlap_if_needed()
+
+            # adiciona unidade (conteúdo novo)
+            current_units.append(u)
+            current_word_count += u_words
+            current_has_new_content = True
+
+            # Se atingiu target e já tem mínimo, fecha chunk
+            if current_word_count >= chunk_target_words and current_word_count >= chunk_min_words:
+                chunk, overlap = finalize_chunk(chunk_idx)
+                if chunk:
+                    chunks.append(chunk)
+                    chunk_idx += 1
+                overlap_buffer = overlap
+
+    # flush final (não cria chunk se for só overlap)
+    if current_units:
         chunk, _ = finalize_chunk(chunk_idx)
         if chunk:
             chunks.append(chunk)
 
     return chunks
 
+
+# -------------------- processamento do job --------------------
 
 def process_index_version(version_id: str, pipeline_version: str, embedding_model_id: str) -> int:
     """
@@ -258,6 +453,7 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
             )
 
             # insere chunks + embeddings
+            created = 0
             for c in chunks:
                 cur.execute(
                     """
@@ -265,6 +461,8 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                       (version_id, pipeline_version, chunk_index, chunk_hash, text, node_refs, tokens_count)
                     VALUES
                       (%s, %s, %s, %s, %s, %s::jsonb, %s)
+                    ON CONFLICT ON CONSTRAINT uq_embedding_chunks_version_pipeline_hash
+                    DO NOTHING
                     RETURNING chunk_id
                     """,
                     (
@@ -277,7 +475,12 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                         c["tokens_count"],
                     ),
                 )
-                chunk_id = cur.fetchone()[0]
+                row = cur.fetchone()
+                if not row:
+                    # chunk duplicado (não deve acontecer, mas fica seguro)
+                    continue
+                chunk_id = row[0]
+                created += 1
 
                 # embedding placeholder determinístico (substituir depois por embeddings reais)
                 vec = fake_embedding_1536(c["chunk_hash"])
@@ -299,8 +502,10 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
 
         conn.commit()
 
-    return len(chunks)
+    return created
 
+
+# -------------------- main loop --------------------
 
 def main() -> None:
     ap = argparse.ArgumentParser(
