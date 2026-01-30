@@ -8,6 +8,17 @@ set -euo pipefail
 # Opcional:
 #   - --superuser-url ou env PG_SUPERUSER_URL para criar a extensão vector (pgvector), se necessário
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [[ -z "${DATABASE_URL:-}" || -z "${PG_SUPERUSER_URL:-}" ]]; then
+  if [[ -f "$ROOT_DIR/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ROOT_DIR/.env"
+    set +a
+  fi
+fi
+
 : "${DATABASE_URL:?DATABASE_URL não definido. Ex: postgresql://intelireg:intelireg@localhost:5555/intelireg}"
 
 YES=0

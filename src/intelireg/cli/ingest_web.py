@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import hashlib
 import re
 import unicodedata
@@ -33,6 +34,8 @@ _anexo_re = re.compile(r"^ANEXO(\s+[IVXLC\d]+)?\b", re.IGNORECASE)
 _SKIP_LINE_RE = re.compile(
     r"^Este texto n[aã]o substitui a Publica[cç][aã]o Oficial\.?$", re.IGNORECASE
 )
+
+_art_split_re = re.compile(r"(?=Art\.\s*\d+)", re.IGNORECASE)
 
 
 def normalize_text(s: str) -> str:
@@ -254,6 +257,40 @@ def extract_nodes_datalegis(
     stack: List[tuple[int, str, str]] = []  # (level, segment, label)
     nodes: List[NodeDraft] = []
 
+    def iter_block_lines(el: Tag) -> List[str]:
+        """
+        Extrai texto preservando quebras e devolve uma lista de linhas normalizadas.
+        - <p>: usa get_text('\\n') para preservar <br> / quebras internas.
+        - <table>: converte em texto com '\\n' entre linhas.
+        Heurística MVP: se uma linha for muito grande e contiver vários 'Art.', quebra em múltiplas partes.
+        """
+        if el.name == "p":
+            raw = el.get_text("\n", strip=True)
+            normalized = normalize_text_keep_newlines(raw)
+        else:
+            normalized = normalize_text_keep_newlines(_table_to_text(el))
+
+        if not normalized:
+            return []
+
+        out: List[str] = []
+        for line in normalized.splitlines():
+            if not line:
+                continue
+
+            # Heurística: algumas páginas "achatam" vários artigos na mesma linha.
+            # Se for uma linha enorme com múltiplos Art., tenta quebrar mantendo o parser atual.
+            if len(line) > 2000 and line.lower().count("art.") >= 2:
+                parts = [p for p in _art_split_re.split(line) if p and p.strip()]
+                for p in parts:
+                    p2 = normalize_text(p)
+                    if p2:
+                        out.append(p2)
+                continue
+
+            out.append(line)
+        return out
+
     def current_parent_path() -> Optional[str]:
         if not stack:
             return None
@@ -404,68 +441,67 @@ def extract_nodes_datalegis(
         annex_parts = []
 
     for el in blocks:
-        if el.name == "p":
-            t = normalize_text(el.get_text(" ", strip=True))
-        else:
-            t = _table_to_text(el)
-
-        if not t:
-            continue
-        if _SKIP_LINE_RE.match(t):
+        lines = iter_block_lines(el)
+        if not lines:
             continue
 
-        is_art = _art_re.match(t)
-        is_cap = _cap_re.match(t)
-        is_sec = _sec_re.match(t)
-        is_subsec = _subsec_re.match(t)
-        is_anexo = _anexo_re.match(t)
+        # Só consideramos "heading centralizado" quando o <p> é um único bloco curto.
+        # Se tiver múltiplas linhas, tratamos linha-a-linha para favorecer detecção de Art./CAP etc.
+        if el.name == "p" and len(lines) == 1 and _looks_like_center_heading(el, lines[0]):
+            t = lines[0]
+            if _SKIP_LINE_RE.match(t):
+                continue
 
-        if in_preamble and (is_art or is_cap or is_anexo):
-            flush_preamble()
+            is_anexo = _anexo_re.match(t)
+            is_cap = _cap_re.match(t)
+            is_sec = _sec_re.match(t)
+            is_subsec = _subsec_re.match(t)
+            is_art = _art_re.match(t)
 
-        if in_preamble:
-            preamble_parts.append(t)
-            continue
+            if in_preamble and (is_art or is_cap or is_anexo):
+                flush_preamble()
 
-        # se está dentro de anexo, tudo vira conteúdo do anexo (até encontrar novo ANEXO)
-        if annex_heading and not is_anexo:
-            annex_parts.append(t)
-            continue
+            if in_preamble:
+                preamble_parts.append(t)
+                continue
 
-        if is_anexo:
-            start_annex(t)
-            continue
+            if annex_heading and not is_anexo:
+                annex_parts.append(t)
+                continue
 
-        if is_cap:
-            flush_article()
-            hnode = push_heading(1, t)
-            nodes.append(hnode)
-            continue
+            if is_anexo:
+                start_annex(t)
+                continue
 
-        if is_sec:
-            flush_article()
-            hnode = push_heading(3, t)
-            nodes.append(hnode)
-            continue
+            if is_cap:
+                flush_article()
+                hnode = push_heading(1, t)
+                nodes.append(hnode)
+                continue
 
-        if is_subsec:
-            flush_article()
-            hnode = push_heading(4, t)
-            nodes.append(hnode)
-            continue
+            if is_sec:
+                flush_article()
+                hnode = push_heading(3, t)
+                nodes.append(hnode)
+                continue
 
-        if is_art:
-            m = _art_re.match(t)
-            assert m is not None
-            art_num = m.group(1)
-            sym = m.group(2) or ""
-            remainder = (m.group(3) or "").strip()
-            head = f"Art. {art_num}{sym}".strip()
-            start_article(head, art_num, remainder)
-            continue
+            if is_subsec:
+                flush_article()
+                hnode = push_heading(4, t)
+                nodes.append(hnode)
+                continue
 
-        # headings centrados genéricos (DISPOSIÇÕES..., Objetivos, etc.)
-        if el.name == "p" and _looks_like_center_heading(el, t):
+            if is_art:
+                m = _art_re.match(t)
+                assert m is not None
+                art_num = m.group(1)
+                sym = m.group(2) or ""
+                remainder = (m.group(3) or "").strip()
+                head = f"Art. {art_num}{sym}".strip()
+                start_article(head, art_num, remainder)
+                continue
+
+            # headings centrados genéricos (DISPOSIÇÕES..., Objetivos, etc.)
             flush_article()
             last_level = stack[-1][0] if stack else 0
             lvl = 2 if last_level <= 1 else 4
@@ -473,13 +509,70 @@ def extract_nodes_datalegis(
             nodes.append(hnode)
             continue
 
-        # conteúdo normal
-        if art_heading:
-            art_parts.append(t)
-        elif annex_heading:
-            annex_parts.append(t)
-        else:
-            orphan_parts.append(t)
+        # Processamento padrão: linha a linha
+        for t in lines:
+            if not t:
+                continue
+            if _SKIP_LINE_RE.match(t):
+                continue
+
+            is_art = _art_re.match(t)
+            is_cap = _cap_re.match(t)
+            is_sec = _sec_re.match(t)
+            is_subsec = _subsec_re.match(t)
+            is_anexo = _anexo_re.match(t)
+
+            if in_preamble and (is_art or is_cap or is_anexo):
+                flush_preamble()
+
+            if in_preamble:
+                preamble_parts.append(t)
+                continue
+
+            # se está dentro de anexo, tudo vira conteúdo do anexo (até encontrar novo ANEXO)
+            if annex_heading and not is_anexo:
+                annex_parts.append(t)
+                continue
+
+            if is_anexo:
+                start_annex(t)
+                continue
+
+            if is_cap:
+                flush_article()
+                hnode = push_heading(1, t)
+                nodes.append(hnode)
+                continue
+
+            if is_sec:
+                flush_article()
+                hnode = push_heading(3, t)
+                nodes.append(hnode)
+                continue
+
+            if is_subsec:
+                flush_article()
+                hnode = push_heading(4, t)
+                nodes.append(hnode)
+                continue
+
+            if is_art:
+                m = _art_re.match(t)
+                assert m is not None
+                art_num = m.group(1)
+                sym = m.group(2) or ""
+                remainder = (m.group(3) or "").strip()
+                head = f"Art. {art_num}{sym}".strip()
+                start_article(head, art_num, remainder)
+                continue
+
+            # conteúdo normal
+            if art_heading:
+                art_parts.append(t)
+            elif annex_heading:
+                annex_parts.append(t)
+            else:
+                orphan_parts.append(t)
 
     if in_preamble:
         flush_preamble()
@@ -587,6 +680,19 @@ def main() -> None:
     # 2) canonicalizar
     title, node_drafts, content_hash = extract_nodes_auto(
         html, max_heading_level=args.max_heading_level
+    )
+
+    # Métricas rápidas de qualidade do ingest (MVP)
+    text_sizes = [len(nd.text_normalized or "") for nd in node_drafts if (nd.text_normalized or "").strip()]
+    text_sizes.sort()
+    max_chars = text_sizes[-1] if text_sizes else 0
+    p95_chars = 0
+    if text_sizes:
+        idx = int(math.floor(0.95 * (len(text_sizes) - 1)))
+        p95_chars = text_sizes[idx]
+    print(
+        f"[ingest_web] extracted title={title!r} nodes={len(node_drafts)} "
+        f"max_node_chars={max_chars} p95_node_chars={p95_chars}"
     )
 
     # 3) preparar inserts
