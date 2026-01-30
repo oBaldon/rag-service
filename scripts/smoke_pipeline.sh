@@ -6,15 +6,21 @@ usage() {
 Uso:
   scripts/smoke_pipeline.sh --url <URL> [--source-org ANVISA] [--doc-type site] [--reset]
 
+O que faz:
+  - (opcional) --reset: recria schema public + reaplica bootstrap (via scripts/reset_db.sh)
+  - roda ingest_web (cria documents/document_versions/nodes e enfileira job)
+  - drena a fila (jobs queued/failed com run_after <= now()) rodando index_worker --once
+  - imprime validações e contagens
+
 Pré-requisitos:
-  - estar na raiz do repo (onde existe src/)
-  - DATABASE_URL exportado (ex.: postgresql://intelireg:intelireg@localhost:5555/intelireg)
-  - venv ativada (opcional, mas recomendado)
+  - estar na raiz do repo (onde existe src/ e scripts/)
+  - psql instalado
+  - venv ativada (recomendado)
+  - .env na raiz (opcional, mas recomendado) com DATABASE_URL/PG_SUPERUSER_URL/PYTHONPATH
 
 Exemplos:
-  export DATABASE_URL="postgresql://intelireg:intelireg@localhost:5555/intelireg"
   bash scripts/smoke_pipeline.sh --reset --url "https://www.gov.br/anvisa/pt-br" --source-org "ANVISA" --doc-type "site"
-  bash scripts/smoke_pipeline.sh --url "https://www.gov.br/anvisa/pt-br"
+  bash scripts/smoke_pipeline.sh --url "https://anvisalegis.datalegis.net/..."
 TXT
 }
 
@@ -40,19 +46,41 @@ if [[ -z "$URL" ]]; then
   exit 1
 fi
 
+# Carrega .env automaticamente (se existir)
+if [[ -f ".env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source ".env"
+  set +a
+fi
+
 if [[ -z "${DATABASE_URL:-}" ]]; then
   echo "ERRO: DATABASE_URL não definido."
-  echo "Ex: export DATABASE_URL=\"postgresql://intelireg:intelireg@localhost:5555/intelireg\""
+  echo "Sugestão: crie .env na raiz com DATABASE_URL=..."
   exit 1
 fi
 
-command -v psql >/dev/null 2>&1 || { echo "ERRO: psql não encontrado."; exit 1; }
-command -v python >/dev/null 2>&1 || { echo "ERRO: python não encontrado."; exit 1; }
+# PYTHONPATH (se não vier do .env, assume src)
+export PYTHONPATH="${PYTHONPATH:-src}"
 
-export PYTHONPATH="src"
+command -v psql >/dev/null 2>&1 || { echo "ERRO: psql não encontrado."; exit 1; }
+
+# python fallback
+PYBIN="python"
+if ! command -v "$PYBIN" >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
+    PYBIN="python3"
+  else
+    echo "ERRO: python/python3 não encontrado."
+    exit 1
+  fi
+fi
 
 echo "== InteliReg Smoke Pipeline =="
 echo "DATABASE_URL=$DATABASE_URL"
+echo "PG_SUPERUSER_URL=${PG_SUPERUSER_URL:-<não definido>}"
+echo "PYTHONPATH=$PYTHONPATH"
+echo "PYBIN=$PYBIN"
 echo "URL=$URL"
 echo "SOURCE_ORG=$SOURCE_ORG"
 echo "DOC_TYPE=$DOC_TYPE"
@@ -60,15 +88,21 @@ echo "RESET=$RESET"
 echo
 
 if [[ "$RESET" == "true" ]]; then
-  echo "[1/5] Resetando dados do MVP (TRUNCATE)..."
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -P pager=off -c \
-    "TRUNCATE chunk_embeddings, embedding_chunks, nodes, document_versions, documents, jobs, rag_runs RESTART IDENTITY;"
+  echo "[1/5] Resetando banco (DROP SCHEMA public + bootstrap)..."
+  if [[ ! -f "./scripts/reset_db.sh" ]]; then
+    echo "ERRO: ./scripts/reset_db.sh não encontrado."
+    exit 1
+  fi
+  bash ./scripts/reset_db.sh --yes
+  echo
+else
+  echo "[1/5] (skip) RESET=false"
   echo
 fi
 
 echo "[2/5] Ingestão (URL -> nodes -> document_version)..."
 set +e
-INGEST_OUT=$(python -m intelireg.cli.ingest_web --url "$URL" --source-org "$SOURCE_ORG" --doc-type "$DOC_TYPE" 2>&1)
+INGEST_OUT=$("$PYBIN" -m intelireg.cli.ingest_web --url "$URL" --source-org "$SOURCE_ORG" --doc-type "$DOC_TYPE" 2>&1)
 INGEST_RC=$?
 set -e
 echo "$INGEST_OUT"
@@ -79,20 +113,28 @@ if [[ $INGEST_RC -ne 0 ]]; then
   exit $INGEST_RC
 fi
 
-echo "[3/5] Garantindo que exista job queued (ou criando reindex job do último version_id)..."
-QUEUED=$(psql "$DATABASE_URL" -t -P pager=off -c "SELECT COUNT(*) FROM jobs WHERE status='queued';" | xargs)
-if [[ "${QUEUED:-0}" -eq 0 ]]; then
+echo "[3/5] Garantindo que exista job pronto (queued/failed com run_after<=now)..."
+READY=$(psql "$DATABASE_URL" -t -P pager=off -c "
+  SELECT COUNT(*)
+  FROM jobs
+  WHERE status IN ('queued','failed')
+    AND run_after <= NOW();
+" | xargs)
+
+if [[ "${READY:-0}" -eq 0 ]]; then
   VID=$(psql "$DATABASE_URL" -t -P pager=off -c "SELECT version_id FROM document_versions ORDER BY created_at DESC LIMIT 1;" | xargs)
   if [[ -z "$VID" ]]; then
     echo "ERRO: não achei version_id no banco após ingestão."
     exit 1
   fi
 
-  echo "Nenhum job queued (provável dedup). Forçando READY_FOR_INDEX e enfileirando IndexVersionJob para version_id=$VID"
+  echo "Nenhum job pronto. Re-enfileirando IndexVersionJob para version_id=$VID (pode ter sido dedup/run_after no futuro)."
+  # força status da versão para permitir index
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -P pager=off -c \
     "UPDATE document_versions SET status='READY_FOR_INDEX' WHERE version_id='$VID';"
 
-  python - <<PY
+  # re-enfileira via código
+  "$PYBIN" - <<PY
 from intelireg.jobs import enqueue_job
 from intelireg import settings
 vid = "$VID"
@@ -104,29 +146,39 @@ job_id = enqueue_job("IndexVersionJob", {
 print("enqueued", job_id)
 PY
 else
-  echo "Jobs queued encontrados: $QUEUED"
+  echo "Jobs prontos para rodar agora: $READY"
 fi
 echo
 
-echo "[4/5] Rodando index_worker até esvaziar a fila (limite 20 iterações)..."
-for i in $(seq 1 20); do
-  QUEUED=$(psql "$DATABASE_URL" -t -P pager=off -c "SELECT COUNT(*) FROM jobs WHERE status='queued';" | xargs)
-  if [[ "${QUEUED:-0}" -eq 0 ]]; then
-    echo "Fila vazia."
+echo "[4/5] Rodando index_worker até esvaziar a fila (limite 40 iterações)..."
+for i in $(seq 1 40); do
+  READY=$(psql "$DATABASE_URL" -t -P pager=off -c "
+    SELECT COUNT(*)
+    FROM jobs
+    WHERE status IN ('queued','failed')
+      AND run_after <= NOW();
+  " | xargs)
+
+  if [[ "${READY:-0}" -eq 0 ]]; then
+    echo "Fila (pronta) vazia."
     break
   fi
-  echo "Iteração $i: queued=$QUEUED -> processando 1 job..."
-  python -m intelireg.workers.index_worker --once || true
+
+  echo "Iteração $i: ready=$READY -> processando 1 job..."
+  "$PYBIN" -m intelireg.workers.index_worker --once || true
 done
 echo
 
 echo "[5/5] Validações"
-echo "---- jobs (últimos 5)"
-psql "$DATABASE_URL" -P pager=off -c "SELECT job_id,type,status,attempts,left(coalesce(last_error,''),120) AS last_error FROM jobs ORDER BY job_id DESC LIMIT 5;"
+echo "---- jobs (últimos 10)"
+psql "$DATABASE_URL" -P pager=off -c \
+  "SELECT job_id,type,status,attempts,run_after,left(coalesce(last_error,''),120) AS last_error
+   FROM jobs ORDER BY job_id DESC LIMIT 10;"
 echo
 
 echo "---- versions (últimas 3)"
-psql "$DATABASE_URL" -P pager=off -c "SELECT version_id,status,source_url,created_at FROM document_versions ORDER BY created_at DESC LIMIT 3;"
+psql "$DATABASE_URL" -P pager=off -c \
+  "SELECT version_id,status,source_url,created_at FROM document_versions ORDER BY created_at DESC LIMIT 3;"
 echo
 
 echo "---- contagens"
@@ -137,24 +189,12 @@ psql "$DATABASE_URL" -P pager=off -c "SELECT COUNT(*) AS chunks FROM embedding_c
 psql "$DATABASE_URL" -P pager=off -c "SELECT COUNT(*) AS embeddings FROM chunk_embeddings;"
 echo
 
-echo "---- último chunk (preview)"
+echo "---- top 5 chunks (maiores tokens_count)"
 psql "$DATABASE_URL" -P pager=off -c "
-SELECT chunk_id, version_id, pipeline_version, chunk_index, tokens_count,
-       left(text, 200) || '...' AS text_preview,
-       jsonb_array_length(node_refs) AS refs
+SELECT chunk_index, tokens_count, length(text) AS chars, left(text, 120) || '...' AS preview
 FROM embedding_chunks
-ORDER BY created_at DESC
-LIMIT 1;"
-echo
-
-echo "---- último embedding (preview)"
-psql "$DATABASE_URL" -P pager=off -c "
-SELECT e.chunk_id, e.embedding_model_id, e.pipeline_version,
-       left(e.embedding::text, 90) || '...' AS embedding_preview
-FROM chunk_embeddings e
-JOIN embedding_chunks c ON c.chunk_id = e.chunk_id
-ORDER BY c.created_at DESC
-LIMIT 1;"
+ORDER BY tokens_count DESC
+LIMIT 5;"
 echo
 
 echo "OK: smoke pipeline finalizado."
