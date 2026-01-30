@@ -461,7 +461,7 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                       (version_id, pipeline_version, chunk_index, chunk_hash, text, node_refs, tokens_count)
                     VALUES
                       (%s, %s, %s, %s, %s, %s::jsonb, %s)
-                    ON CONFLICT ON CONSTRAINT uq_embedding_chunks_version_pipeline_hash
+                    ON CONFLICT (version_id, pipeline_version, chunk_hash)
                     DO NOTHING
                     RETURNING chunk_id
                     """,
