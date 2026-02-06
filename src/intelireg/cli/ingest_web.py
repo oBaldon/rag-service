@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import collections
+import itertools
 import math
 import hashlib
 import re
@@ -324,15 +326,67 @@ def extract_nodes_datalegis(
 
     # artigo em construção
     art_heading: Optional[str] = None
+    art_num_current: Optional[str] = None
     art_path: Optional[str] = None
     art_parent: Optional[str] = None
     art_parts: List[str] = []
+    
+    # Dedup de artigos: (art_num, text_hash) -> index em nodes
+    seen_articles: dict[tuple[str, str], int] = {}
+
 
     # anexo em construção (conteúdo do anexo)
     annex_heading: Optional[str] = None
     annex_path: Optional[str] = None
     annex_parent: Optional[str] = None
     annex_parts: List[str] = []
+
+    # Datalegis às vezes repete o HTML (print/mobile/etc) após os anexos.
+    # Se isso acontecer, o parser antigo "grudava" o documento repetido dentro do último anexo.
+    # Ao detectar um restart do documento enquanto estamos em anexo, ignoramos o restante.
+    ignore_rest = False
+    
+    # Datalegis às vezes repete o HTML (print/mobile/etc). Evita criar o mesmo ANEXO duas vezes.
+    seen_annex_labels: set[str] = set()
+
+    def _canon_label(s: str) -> str:
+        return normalize_text(s).casefold()
+
+    # Detecta repetição do documento (print/mobile/duplicação de HTML)
+    # Fora de anexo, o Datalegis às vezes replica o ato inteiro após o fim.
+    # Se o cabeçalho típico reaparecer, cortamos.
+    _DOC_HEADER_MARKERS = (
+        "MINISTÉRIO DA SAÚDE",
+        "MINISTERIO DA SAUDE",
+        "AGÊNCIA NACIONAL DE VIGILÂNCIA SANITÁRIA",
+        "AGENCIA NACIONAL DE VIGILANCIA SANITARIA",
+        "DIRETORIA COLEGIADA",
+        "RESOLUÇÃO",
+        "RESOLUCAO",
+    )
+    seen_doc_header_markers: set[str] = set()
+
+    def _doc_header_marker(line: str) -> Optional[str]:
+        t = normalize_text(line)
+        tu = t.upper()
+        for m in _DOC_HEADER_MARKERS:
+            if tu.startswith(m):
+                return m
+        return None
+    
+    def _looks_like_doc_restart(line: str) -> bool:
+        """
+        Heurística: dentro de ANEXO, encontrar 'CAPÍTULO ...' ou cabeçalhos típicos do início do ato
+        indica que o site duplicou o documento (print/mobile). Nesse caso, devemos parar.
+        """
+        t = normalize_text(line)
+        if _cap_re.match(t):
+            return True
+        if t.upper().startswith("MINISTÉRIO DA SAÚDE"):
+            return True
+        if t.upper().startswith("AGÊNCIA NACIONAL DE VIGILÂNCIA SANITÁRIA"):
+            return True
+        return False
 
     def flush_preamble() -> None:
         nonlocal preamble_parts, in_preamble
@@ -366,25 +420,43 @@ def extract_nodes_datalegis(
         orphan_parts = []
 
     def flush_article() -> None:
-        nonlocal art_heading, art_path, art_parent, art_parts
-        if not art_heading or not art_path:
+        nonlocal art_heading, art_num_current, art_path, art_parent, art_parts, seen_articles
+        if not art_heading or not art_path or not art_num_current:
             art_heading = None
+            art_num_current = None
             art_path = None
             art_parent = None
             art_parts = []
             return
 
         txt = normalize_text_keep_newlines("\n".join(art_parts))
-        nodes.append(
-            NodeDraft(
-                heading_level=5,
-                heading_text=art_heading,
-                path=art_path,
-                parent_path=art_parent,
-                text_normalized=txt,
-            )
+        # chave de duplicidade: mesmo Art. + mesmo conteúdo => escolher o path mais longo
+        txt_hash = sha256_hex(normalize_for_hash(txt))
+        key = (art_num_current, txt_hash)
+
+        new_node = NodeDraft(
+            heading_level=5,
+            heading_text=art_heading,
+            path=art_path,
+            parent_path=art_parent,
+            text_normalized=txt,
         )
+
+        if key in seen_articles:
+            idx = seen_articles[key]
+            old = nodes[idx]
+            # mantém o "path longo" (mais profundo)
+            old_depth = old.path.count("/") if old.path else 0
+            new_depth = new_node.path.count("/") if new_node.path else 0
+            if new_depth > old_depth:
+                nodes[idx] = new_node
+            # se new_depth <= old_depth: descarta o novo (fica o longo/antigo)
+        else:
+            seen_articles[key] = len(nodes)
+            nodes.append(new_node)
+            
         art_heading = None
+        art_num_current = None
         art_path = None
         art_parent = None
         art_parts = []
@@ -414,7 +486,7 @@ def extract_nodes_datalegis(
         annex_parts = []
 
     def start_article(art_label: str, art_num: str, remainder: str) -> None:
-        nonlocal art_heading, art_path, art_parent, art_parts
+        nonlocal art_heading, art_num_current, art_path, art_parent, art_parts
         flush_article()
 
         parent = current_parent_path()
@@ -422,12 +494,27 @@ def extract_nodes_datalegis(
         art_parent = parent
         art_path = f"{parent}/{seg}" if parent else seg
         art_heading = art_label
+        art_num_current = art_num
         art_parts = []
         if remainder:
             art_parts.append(remainder.strip())
 
     def start_annex(label: str) -> None:
-        nonlocal annex_heading, annex_path, annex_parent, annex_parts
+        nonlocal annex_heading, annex_path, annex_parent, annex_parts, seen_annex_labels
+
+        canon = _canon_label(label)
+
+        # 1) Se já estamos dentro do MESMO anexo e ele aparece de novo,
+        # trata como conteúdo (não reinicia e não duplica path).
+        if annex_heading and canon == _canon_label(annex_heading):
+            annex_parts.append(label)
+            return
+
+        # 2) Se este anexo já apareceu antes (HTML duplicado), ignora para não duplicar nodes/paths.
+        if canon in seen_annex_labels:
+            return
+
+        # 3) Fluxo normal: fecha o que estava aberto e inicia novo anexo
         flush_article()
         flush_annex()
 
@@ -440,7 +527,11 @@ def extract_nodes_datalegis(
         annex_path = hnode.path + "/conteudo"
         annex_parts = []
 
+        seen_annex_labels.add(canon)
+
     for el in blocks:
+        if ignore_rest:
+            break
         lines = iter_block_lines(el)
         if not lines:
             continue
@@ -451,6 +542,18 @@ def extract_nodes_datalegis(
             t = lines[0]
             if _SKIP_LINE_RE.match(t):
                 continue
+
+            # Corte de repetição do documento fora de anexo:
+            # Se um marcador de cabeçalho típico reaparecer depois do início, paramos.
+            mk = _doc_header_marker(t)
+            if mk:
+                if mk in seen_doc_header_markers and not in_preamble:
+                    flush_article()
+                    flush_annex()
+                    flush_orphans()
+                    ignore_rest = True
+                    break
+                seen_doc_header_markers.add(mk)
 
             is_anexo = _anexo_re.match(t)
             is_cap = _cap_re.match(t)
@@ -463,6 +566,13 @@ def extract_nodes_datalegis(
 
             if in_preamble:
                 preamble_parts.append(t)
+                continue
+
+            # Se estamos dentro de anexo e apareceu um "restart" típico do documento, corta duplicação.
+            if annex_heading and _looks_like_doc_restart(t):
+                flush_article()
+                flush_annex()
+                ignore_rest = True
                 continue
 
             if annex_heading and not is_anexo:
@@ -516,6 +626,17 @@ def extract_nodes_datalegis(
             if _SKIP_LINE_RE.match(t):
                 continue
 
+            # Corte de repetição do documento fora de anexo
+            mk = _doc_header_marker(t)
+            if mk:
+                if mk in seen_doc_header_markers and not in_preamble:
+                    flush_article()
+                    flush_annex()
+                    flush_orphans()
+                    ignore_rest = True
+                    break
+                seen_doc_header_markers.add(mk)
+
             is_art = _art_re.match(t)
             is_cap = _cap_re.match(t)
             is_sec = _sec_re.match(t)
@@ -527,6 +648,13 @@ def extract_nodes_datalegis(
 
             if in_preamble:
                 preamble_parts.append(t)
+                continue
+
+            # Se estamos dentro de anexo e apareceu um "restart" típico do documento, corta duplicação.
+            if annex_heading and _looks_like_doc_restart(t):
+                flush_article()
+                flush_annex()
+                ignore_rest = True
                 continue
 
             # se está dentro de anexo, tudo vira conteúdo do anexo (até encontrar novo ANEXO)

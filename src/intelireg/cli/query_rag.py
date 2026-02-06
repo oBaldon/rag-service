@@ -100,6 +100,10 @@ def main() -> None:
     )
     args = ap.parse_args()
 
+    # run_id primeiro, para poder entrar no nome do arquivo (e ser auditável)
+    run_id = str(uuid4())
+    run_id_short = run_id.split("-")[0]  # 8 chars
+
     out = build_output(
         question=args.question,
         version_id=args.version_id,
@@ -116,12 +120,11 @@ def main() -> None:
     if args.out:
         out_path = Path(args.out)
     else:
-        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        out_path = runs_dir / f"{ts}_query.json"
+        day = datetime.now(timezone.utc).strftime("%Y%m%d")
+        out_path = runs_dir / f"{day}_{run_id_short}_query.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     # run_id e metadados úteis (auditáveis)
-    run_id = str(uuid4())
     out["run_id"] = run_id
     out["output_path"] = str(out_path)
 

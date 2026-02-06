@@ -38,6 +38,11 @@ _FTS_STOPWORDS = {
     "e", "ou",
     "ter", "têm", "tem", "até", "sobre", "como", "quais", "qual",
     "regras", "regra", "exigencias", "exigência", "exigências",
+    # termos "meta" que frequentemente deixam o FTS restritivo demais
+    "rdc", "lei", "decreto", "portaria", "resolucao", "resolução",
+    "numero", "número", "ano",
+    # opcional: costuma atrapalhar mais do que ajudar (muito frequente no texto)
+    #"art",
 }
 
 
@@ -57,13 +62,29 @@ def _build_fts_keywords_text(question: str, max_terms: int = 8) -> str:
     if not tokens:
         return ""
 
+    # Remove padrões comuns "tipo + número" (ex.: "rdc 327", "lei 9782", "decreto 1234")
+    cleaned: List[str] = []
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t in {"rdc", "lei", "decreto", "portaria", "resolucao", "resolução"}:
+            if i + 1 < len(tokens) and tokens[i + 1].isdigit():
+                i += 2
+                continue
+        cleaned.append(t)
+        i += 1
+    tokens = cleaned
+
+
     # Filtra stopwords e tokens muito curtos (exceto números)
     filtered: List[str] = []
     for t in tokens:
         if t in _FTS_STOPWORDS:
             continue
         if t.isdigit():
-            filtered.append(t)
+            # Mantém só números pequenos (ex.: 0 e 2 do "0,2"); descarta 327/2019/9782 etc
+            if len(t) <= 2:
+                filtered.append(t)
             continue
         if len(t) >= 3:
             filtered.append(t)
@@ -73,7 +94,7 @@ def _build_fts_keywords_text(question: str, max_terms: int = 8) -> str:
 
     # Prioriza domínio
     priority: List[str] = []
-    for t in ("cannabis", "thc", "anvisa"):
+    for t in ("cannabis", "thc", "canabidiol"):
         if t in filtered and t not in priority:
             priority.append(t)
 
