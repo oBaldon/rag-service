@@ -26,7 +26,10 @@ from intelireg.jobs import enqueue_job
 _ws_re = re.compile(r"\s+")
 
 # Art. 10º ... / Art. 10° ... / Art. 10. ...
-_art_re = re.compile(r"^Art\.\s*(\d+)\s*([º°])?\s*\.?\s*(.*)$", re.IGNORECASE)
+# IMPORTANT: não use IGNORECASE aqui.
+# "art. 15" (minúsculo) aparece em citações no preâmbulo via <a> inline e pode virar linha
+# se o HTML for quebrado; isso não deve virar nó de artigo.
+_art_re = re.compile(r"^(?:Art\.|ART\.)\s*(\d+)\s*([º°])?\s*\.?\s*(.*)$")
 
 _cap_re = re.compile(r"^CAP[ÍI]TULO\s+([IVXLC\d]+)\b", re.IGNORECASE)
 _sec_re = re.compile(r"^Se[cç]ão\s+([IVXLC\d]+)\b", re.IGNORECASE)
@@ -37,7 +40,10 @@ _SKIP_LINE_RE = re.compile(
     r"^Este texto n[aã]o substitui a Publica[cç][aã]o Oficial\.?$", re.IGNORECASE
 )
 
-_art_split_re = re.compile(r"(?=Art\.\s*\d+)", re.IGNORECASE)
+_art_split_re = re.compile(r"(?=(?:Art\.|ART\.)\s*\d+)")
+
+# Para sanity-check / splitting: "Art. 12" em qualquer lugar da linha
+_ART_IN_LINE_RE = re.compile(r"\b(?:Art\.|ART\.)\s*\d+\b")
 
 
 def normalize_text(s: str) -> str:
@@ -245,6 +251,10 @@ def extract_nodes_datalegis(
     if not ato:
         return None
 
+    # Dica bruta do "tamanho" (quantos Art. existem no HTML).
+    # Se extraímos muito menos do que isso, provavelmente cortamos cedo por heurística.
+    raw_art_hint = len(_ART_IN_LINE_RE.findall(ato.get_text(" ", strip=True)))
+
     title = extract_title(soup)
 
     # blocos em ordem: p fora de table + tables
@@ -264,11 +274,22 @@ def extract_nodes_datalegis(
         Extrai texto preservando quebras e devolve uma lista de linhas normalizadas.
         - <p>: usa get_text('\\n') para preservar <br> / quebras internas.
         - <table>: converte em texto com '\\n' entre linhas.
-        Heurística MVP: se uma linha for muito grande e contiver vários 'Art.', quebra em múltiplas partes.
+        Heurística: se uma linha começa com Art. e contém múltiplos Art., quebra em múltiplas partes.
         """
         if el.name == "p":
-            raw = el.get_text("\n", strip=True)
-            normalized = normalize_text_keep_newlines(raw)
+            # NUNCA use get_text("\n") aqui.
+            # O BeautifulSoup insere "\n" entre QUALQUER nó de texto (incluindo <a> inline),
+            # quebrando artigos com links/citações (ex.: "Art. 11 ... artigos 19 ... 27 ...").
+            # Para preservar apenas quebras reais: converte <br> -> "\n" manualmente e
+            # extrai tudo com separator=" " (não quebra em <a>).
+            if el.find("br"):
+                for br in el.find_all("br"):
+                    br.replace_with("\n")
+                raw = el.get_text(" ", strip=True)
+                normalized = normalize_text_keep_newlines(raw)
+            else:
+                raw = el.get_text(" ", strip=True)
+                normalized = normalize_text(raw)
         else:
             normalized = normalize_text_keep_newlines(_table_to_text(el))
 
@@ -281,8 +302,13 @@ def extract_nodes_datalegis(
                 continue
 
             # Heurística: algumas páginas "achatam" vários artigos na mesma linha.
-            # Se for uma linha enorme com múltiplos Art., tenta quebrar mantendo o parser atual.
-            if len(line) > 2000 and line.lower().count("art.") >= 2:
+            # Para evitar engolir Art. 2, Art. 3... dentro do texto do Art. 1:
+            # só splitamos se:
+            #   - a linha COMEÇA com Art.
+            #   - e aparecem >= 2 ocorrências de "Art. <num>" na mesma linha
+            #   - e a linha é "grande o suficiente" (pra não splitar citações curtas)
+            hits = list(_ART_IN_LINE_RE.finditer(line))
+            if hits and hits[0].start() == 0 and len(hits) >= 2 and len(line) > 400:
                 parts = [p for p in _art_split_re.split(line) if p and p.strip()]
                 for p in parts:
                     p2 = normalize_text(p)
@@ -361,8 +387,10 @@ def extract_nodes_datalegis(
         "AGÊNCIA NACIONAL DE VIGILÂNCIA SANITÁRIA",
         "AGENCIA NACIONAL DE VIGILANCIA SANITARIA",
         "DIRETORIA COLEGIADA",
-        "RESOLUÇÃO",
-        "RESOLUCAO",
+        # Evite marker genérico "RESOLUÇÃO" (aparece no meio do texto e corta cedo).
+        # Mantemos algo mais específico, típico de cabeçalho duplicado.
+        "RESOLUÇÃO DA DIRETORIA COLEGIADA",
+        "RESOLUCAO DA DIRETORIA COLEGIADA",
     )
     seen_doc_header_markers: set[str] = set()
 
@@ -626,17 +654,6 @@ def extract_nodes_datalegis(
             if _SKIP_LINE_RE.match(t):
                 continue
 
-            # Corte de repetição do documento fora de anexo
-            mk = _doc_header_marker(t)
-            if mk:
-                if mk in seen_doc_header_markers and not in_preamble:
-                    flush_article()
-                    flush_annex()
-                    flush_orphans()
-                    ignore_rest = True
-                    break
-                seen_doc_header_markers.add(mk)
-
             is_art = _art_re.match(t)
             is_cap = _cap_re.match(t)
             is_sec = _sec_re.match(t)
@@ -715,6 +732,18 @@ def extract_nodes_datalegis(
         all_for_hash.append(n.heading_text)
         if n.text_normalized:
             all_for_hash.append(n.text_normalized)
+
+    # Sanity-check: se o HTML "parece ter muitos Art.", mas extraímos poucos,
+    # provavelmente alguma heurística cortou cedo (duplicação/restart).
+    extracted_arts = sum(
+        1 for n in nodes
+        if n.heading_level == 5 and (n.heading_text.startswith("Art.") or n.heading_text.startswith("ART."))
+    )
+    if raw_art_hint >= 10 and extracted_arts < max(5, int(raw_art_hint * 0.4)):
+        print(
+            f"[ingest_web] WARN datalegis parse suspeito: raw_art_hint={raw_art_hint} "
+            f"extracted_arts={extracted_arts}. Sugestão: reingerir (ou revisar heurística de corte)."
+        )
 
     content_hash = sha256_hex(normalize_for_hash("\n".join(all_for_hash)))
     return title, nodes, content_hash
