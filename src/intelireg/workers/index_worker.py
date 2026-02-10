@@ -416,9 +416,9 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
             status = row[0]
             if status != "READY_FOR_INDEX" and not (force and status == "INDEXED"):
                 raise RuntimeError(
-                    f"version_id {version_id} status inválido: {status} (esperado READY_FOR_INDEX)"
+                    f"version_id {version_id} status inválido: {status} "
+                    f"(esperado READY_FOR_INDEX; ou INDEXED com force=true)"
                 )
-
             nodes = load_nodes(cur, version_id)
             if not nodes:
                 raise RuntimeError(f"version_id {version_id} não possui nodes")
