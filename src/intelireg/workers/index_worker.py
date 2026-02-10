@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import traceback
 import hashlib
 import json
 import os
@@ -547,8 +548,37 @@ def main() -> None:
             )
 
         except Exception as e:
-            mark_failed(job.job_id, str(e), backoff_seconds=15)
-            print(f"[index_worker] failed job_id={job.job_id}: {e}")
+            msg = str(e)
+
+            # Erros "permanentes": retry não adianta, então mata o job.
+            # - version_id não existe mais
+            # - versão está em status que o worker não aceita (job mal enfileirado)
+            permanent = (
+                ("version_id não encontrado" in msg)
+                or ("status inválido" in msg)
+                or ("não possui nodes" in msg)
+            )
+
+            if permanent:
+                with get_conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """
+                            UPDATE jobs
+                            SET status='dead',
+                                last_error = concat_ws(E'\n', NULLIF(last_error,''), %s::text),
+                                locked_at=NULL,
+                                locked_by=NULL,
+                                updated_at=now()
+                            WHERE job_id=%s
+                            """,
+                            (msg, job.job_id),
+                        )
+                    conn.commit()
+                print(f"[index_worker] dead job_id={job.job_id}: {msg}")
+            else:
+                mark_failed(job.job_id, msg, backoff_seconds=15)
+                print(f"[index_worker] failed job_id={job.job_id}: {msg}")
 
         if args.once:
             return

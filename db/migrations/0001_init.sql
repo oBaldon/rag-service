@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS document_versions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Se já existia um índice não-unique com esse nome em algum DB antigo, garante upgrade:
+DROP INDEX IF EXISTS uq_document_versions_content_hash;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_document_versions_content_hash
   ON document_versions(content_hash);
 
@@ -88,18 +90,22 @@ CREATE TABLE IF NOT EXISTS nodes (
 
 CREATE INDEX IF NOT EXISTS ix_nodes_version_id ON nodes(version_id);
 CREATE INDEX IF NOT EXISTS ix_nodes_parent_id ON nodes(parent_id);
-CREATE INDEX IF NOT EXISTS ix_nodes_path ON nodes(path);
 
-CREATE INDEX IF NOT EXISTS ix_nodes_version_node_index
+-- (se alguém tentar inserir nodes repetidos na mesma version, o banco bloqueia)
+DROP INDEX IF EXISTS ix_nodes_version_node_index;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_nodes_version_node_index
   ON nodes(version_id, node_index);
+
+DROP INDEX IF EXISTS ix_nodes_path;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_nodes_version_path
+  ON nodes(version_id, path);
+
+-- (opcional) se você ainda quiser busca por path sem filtrar por version:
+-- CREATE INDEX IF NOT EXISTS ix_nodes_path_only ON nodes(path);
 
 -- =========================================================
 -- Chunks + FTS
 -- =========================================================
--- IMPORTANTE:
--- Não usamos GENERATED ALWAYS para tsv porque to_tsvector/unaccent
--- podem não ser IMMUTABLE no Postgres => erro "generation expression is not immutable".
--- Usamos trigger para manter tsv atualizado.
 
 CREATE TABLE IF NOT EXISTS embedding_chunks (
   chunk_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -127,7 +133,6 @@ CREATE INDEX IF NOT EXISTS ix_embedding_chunks_version_id
 CREATE INDEX IF NOT EXISTS ix_embedding_chunks_tsv_gin
   ON embedding_chunks USING GIN (tsv);
 
--- Trigger para atualizar o TSV
 CREATE OR REPLACE FUNCTION embedding_chunks_set_tsv()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -201,6 +206,23 @@ CREATE INDEX IF NOT EXISTS ix_jobs_status_run_after
 
 CREATE INDEX IF NOT EXISTS ix_jobs_locked_at
   ON jobs(locked_at);
+
+CREATE OR REPLACE FUNCTION jobs_set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_jobs_set_updated_at ON jobs;
+
+CREATE TRIGGER trg_jobs_set_updated_at
+BEFORE UPDATE ON jobs
+FOR EACH ROW
+EXECUTE FUNCTION jobs_set_updated_at();
 
 -- =========================================================
 -- Auditoria: rag_runs

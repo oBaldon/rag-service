@@ -285,7 +285,8 @@ def extract_nodes_datalegis(
             if el.find("br"):
                 for br in el.find_all("br"):
                     br.replace_with("\n")
-                raw = el.get_text(" ", strip=True)
+                # strip=True apagaria o "\n" (pois "\n".strip() vira ""), então usamos strip=False.
+                raw = el.get_text(" ", strip=False)
                 normalized = normalize_text_keep_newlines(raw)
             else:
                 raw = el.get_text(" ", strip=True)
@@ -796,6 +797,12 @@ def main() -> None:
     ap.add_argument("--doc-type", required=True)
 
     ap.add_argument(
+        "--reindex-existing",
+        action="store_true",
+        help="Se o content_hash já existir, não recria versão/nodes; apenas re-enfileira IndexVersionJob para a versão existente.",
+    )
+ 
+    ap.add_argument(
         "--max-heading-level",
         type=int,
         default=settings.CANON_MAX_HEADING_LEVEL,
@@ -852,6 +859,15 @@ def main() -> None:
         f"max_node_chars={max_chars} p95_node_chars={p95_chars}"
     )
 
+    # sanity-check: paths únicos (o banco agora tende a impor isso também)
+    paths = [nd.path for nd in node_drafts]
+    dup_paths = [p for p, c in collections.Counter(paths).items() if c > 1]
+    if dup_paths:
+        sample = ", ".join(dup_paths[:10])
+        raise SystemExit(
+            f"[ingest_web] ERRO: paths duplicados no extractor ({len(dup_paths)}). Exemplos: {sample}"
+        )
+ 
     # 3) preparar inserts
     version_id = str(uuid4())
 
@@ -881,9 +897,31 @@ def main() -> None:
         with conn.cursor() as cur:
             existing_version = find_version_id_by_content_hash(cur, content_hash)
             if existing_version:
-                print(
-                    f"[ingest_web] conteúdo já existe (content_hash). version_id existente: {existing_version}"
+                # Atualiza metadados “de captura” (não altera document_id nem recria nodes)
+                cur.execute(
+                    """
+                    UPDATE document_versions
+                    SET final_url = %s,
+                        http_status = %s,
+                        captured_at = %s
+                    WHERE version_id = %s
+                    """,
+                    (final_url, http_status, captured_at, existing_version),
                 )
+                conn.commit()
+
+                print(f"[ingest_web] conteúdo já existe (content_hash). version_id existente: {existing_version}")
+
+                if args.reindex_existing:
+                    job_id = enqueue_job(
+                        "IndexVersionJob",
+                        {
+                            "version_id": existing_version,
+                            "pipeline_version": args.pipeline_version,
+                            "embedding_model_id": args.embedding_model_id,
+                        },
+                    )
+                    print(f"[ingest_web] reindex solicitado; enqueued IndexVersionJob job_id={job_id}")
                 return
 
             document_id = find_document_id_by_url(cur, args.url)
@@ -904,6 +942,8 @@ def main() -> None:
                   (version_id, document_id, status, source_url, final_url, http_status, captured_at, content_hash)
                 VALUES
                   (%s, %s, 'READY_FOR_INDEX', %s, %s, %s, %s, %s)
+                ON CONFLICT (content_hash) DO NOTHING
+                RETURNING version_id
                 """,
                 (
                     version_id,
@@ -915,6 +955,24 @@ def main() -> None:
                     content_hash,
                 ),
             )
+
+            row = cur.fetchone()
+            if not row:
+                # Corrida/concurrency: alguém inseriu primeiro. Trata como duplicate.
+                existing_version = find_version_id_by_content_hash(cur, content_hash)
+                conn.commit()
+                print(f"[ingest_web] conteúdo já existe (race). version_id existente: {existing_version}")
+                if args.reindex_existing and existing_version:
+                    job_id = enqueue_job(
+                        "IndexVersionJob",
+                        {
+                            "version_id": existing_version,
+                            "pipeline_version": args.pipeline_version,
+                            "embedding_model_id": args.embedding_model_id,
+                        },
+                    )
+                    print(f"[ingest_web] reindex solicitado; enqueued IndexVersionJob job_id={job_id}")
+                return
 
             cur.executemany(
                 """
