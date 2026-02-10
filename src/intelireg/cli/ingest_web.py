@@ -919,6 +919,7 @@ def main() -> None:
                             "version_id": existing_version,
                             "pipeline_version": args.pipeline_version,
                             "embedding_model_id": args.embedding_model_id,
+                            "force": True,
                         },
                     )
                     print(f"[ingest_web] reindex solicitado; enqueued IndexVersionJob job_id={job_id}")
@@ -969,6 +970,7 @@ def main() -> None:
                             "version_id": existing_version,
                             "pipeline_version": args.pipeline_version,
                             "embedding_model_id": args.embedding_model_id,
+                            "force": True,
                         },
                     )
                     print(f"[ingest_web] reindex solicitado; enqueued IndexVersionJob job_id={job_id}")

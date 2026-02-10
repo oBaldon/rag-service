@@ -397,7 +397,7 @@ def build_chunks_from_nodes(
 
 # -------------------- processamento do job --------------------
 
-def process_index_version(version_id: str, pipeline_version: str, embedding_model_id: str) -> int:
+def process_index_version(version_id: str, pipeline_version: str, embedding_model_id: str, force: bool = False) -> int:
     """
     Gera embedding_chunks + chunk_embeddings (placeholder) e marca versão como INDEXED.
     Retorna número de chunks criados.
@@ -414,7 +414,7 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                 raise RuntimeError(f"version_id não encontrado: {version_id}")
 
             status = row[0]
-            if status != "READY_FOR_INDEX":
+            if status != "READY_FOR_INDEX" and not (force and status == "INDEXED"):
                 raise RuntimeError(
                     f"version_id {version_id} status inválido: {status} (esperado READY_FOR_INDEX)"
                 )
@@ -541,7 +541,8 @@ def main() -> None:
             pipeline_version = job.payload.get("pipeline_version", settings.PIPELINE_VERSION)
             embedding_model_id = job.payload.get("embedding_model_id", settings.EMBEDDING_MODEL_ID)
 
-            n = process_index_version(version_id, pipeline_version, embedding_model_id)
+            force = bool(job.payload.get("force", False))
+            n = process_index_version(version_id, pipeline_version, embedding_model_id, force=force)
             mark_done(job.job_id)
             print(
                 f"[index_worker] done job_id={job.job_id} version_id={version_id} pipeline={pipeline_version} chunks={n}"
