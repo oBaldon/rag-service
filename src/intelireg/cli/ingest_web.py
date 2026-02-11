@@ -272,22 +272,24 @@ def extract_nodes_datalegis(
     def iter_block_lines(el: Tag) -> List[str]:
         """
         Extrai texto preservando quebras e devolve uma lista de linhas normalizadas.
-        - <p>: usa get_text('\\n') para preservar <br> / quebras internas.
-        - <table>: converte em texto com '\\n' entre linhas.
+        - <p>: evita quebrar em <a> inline; trata <br> como quebra "real"
+        - <table>: converte em texto com '\n' entre linhas.
         Heurística: se uma linha começa com Art. e contém múltiplos Art., quebra em múltiplas partes.
         """
         if el.name == "p":
-            # NUNCA use get_text("\n") aqui.
-            # O BeautifulSoup insere "\n" entre QUALQUER nó de texto (incluindo <a> inline),
-            # quebrando artigos com links/citações (ex.: "Art. 11 ... artigos 19 ... 27 ...").
-            # Para preservar apenas quebras reais: converte <br> -> "\n" manualmente e
-            # extrai tudo com separator=" " (não quebra em <a>).
-            if el.find("br"):
+            had_br = el.find("br") is not None
+
+            if had_br:
+                # substitui <br> por '\n' (uma única vez)
                 for br in el.find_all("br"):
                     br.replace_with("\n")
-                # strip=True apagaria o "\n" (pois "\n".strip() vira ""), então usamos strip=False.
-                raw = el.get_text(" ", strip=False)
-                normalized = normalize_text_keep_newlines(raw)
+
+                # >>> IMPORTANTE <<<
+                # O seu "código duplicado que funciona" acaba CAINDO no caminho de strip=True,
+                # ou seja, ele ACHATA as quebras em espaços.
+                # Para reproduzir isso sem gambiarra, nós "flattenamos" aqui:
+                raw = el.get_text(" ", strip=True)
+                normalized = normalize_text(raw)
             else:
                 raw = el.get_text(" ", strip=True)
                 normalized = normalize_text(raw)
@@ -299,15 +301,10 @@ def extract_nodes_datalegis(
 
         out: List[str] = []
         for line in normalized.splitlines():
+            line = line.strip()
             if not line:
                 continue
 
-            # Heurística: algumas páginas "achatam" vários artigos na mesma linha.
-            # Para evitar engolir Art. 2, Art. 3... dentro do texto do Art. 1:
-            # só splitamos se:
-            #   - a linha COMEÇA com Art.
-            #   - e aparecem >= 2 ocorrências de "Art. <num>" na mesma linha
-            #   - e a linha é "grande o suficiente" (pra não splitar citações curtas)
             hits = list(_ART_IN_LINE_RE.finditer(line))
             if hits and hits[0].start() == 0 and len(hits) >= 2 and len(line) > 400:
                 parts = [p for p in _art_split_re.split(line) if p and p.strip()]
@@ -318,7 +315,23 @@ def extract_nodes_datalegis(
                 continue
 
             out.append(line)
-        return out
+
+        merged: List[str] = []
+        i = 0
+        while i < len(out):
+            cur = out[i].strip()
+            if cur in ("Art.", "ART.") and i + 1 < len(out):
+                nxt = out[i + 1].strip()
+                if re.match(r"^\d+\s*([º°])?\.?\s*.*$", nxt):
+                    merged.append(f"{cur} {nxt}".strip())
+                    i += 2
+                    continue
+            merged.append(out[i])
+            i += 1
+
+        return merged
+
+
 
     def current_parent_path() -> Optional[str]:
         if not stack:
@@ -557,6 +570,8 @@ def extract_nodes_datalegis(
         annex_parts = []
 
         seen_annex_labels.add(canon)
+        
+    carry_art_prefix: Optional[str] = None
 
     for el in blocks:
         if ignore_rest:
@@ -564,6 +579,19 @@ def extract_nodes_datalegis(
         lines = iter_block_lines(el)
         if not lines:
             continue
+        
+        # merge entre blocos: "... Art." (fim do bloco anterior) + "12º ..." (início do bloco atual)
+        if carry_art_prefix and lines:
+            first = lines[0].strip()
+            if re.match(r"^\d+\s*([º°])?\.?\s*.*$", first):
+                lines[0] = f"{carry_art_prefix} {first}".strip()
+            else:
+                lines.insert(0, carry_art_prefix)
+            carry_art_prefix = None
+
+        # se este bloco termina com "Art.", guarda para tentar juntar com o próximo bloco
+        if lines and lines[-1].strip() in ("Art.", "ART."):
+            carry_art_prefix = lines.pop(-1).strip()
 
         # Só consideramos "heading centralizado" quando o <p> é um único bloco curto.
         # Se tiver múltiplas linhas, tratamos linha-a-linha para favorecer detecção de Art./CAP etc.
@@ -722,6 +750,10 @@ def extract_nodes_datalegis(
 
     if in_preamble:
         flush_preamble()
+   
+    # Se sobrou um "Art." solto no final do documento, não perde (vai para notas finais).
+    if carry_art_prefix:
+        orphan_parts.append(carry_art_prefix)
 
     flush_article()
     flush_annex()

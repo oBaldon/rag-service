@@ -47,12 +47,25 @@ psql "$DATABASE_URL" -P pager=off -c "\dt"
 # =========================================================
 # >>>>>> MUDE AQUI para ingerir outro documento:
 URL="https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=RDC&numeroAto=00000327&seqAto=000&valorAno=2019&orgao=RDC/DC/ANVISA/MS&cod_menu=1696&cod_modulo=134&pesquisa=true"
+URL2="https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=RDC&numeroAto=00000875&seqAto=000&valorAno=2024&orgao=RDC/DC/ANVISA/MS&codTipo=&desItem=&desItemFim=&cod_menu=1696&cod_modulo=134&pesquisa=true"
+URL3="https://anvisalegis.datalegis.net/action/ActionDatalegis.php?acao=abrirTextoAto&tipo=RDC&numeroAto=00000938&seqAto=000&valorAno=2024&orgao=RDC/DC/ANVISA/MS&codTipo=&desItem=&desItemFim=&cod_menu=1696&cod_modulo=134&pesquisa=true"
+
 SOURCE_ORG="ANVISA"
 DOC_TYPE="rdc"
 # <<<<<<
 
 python -m intelireg.cli.ingest_web \
   --url "$URL" \
+  --source-org "$SOURCE_ORG" \
+  --doc-type "$DOC_TYPE"
+
+python -m intelireg.cli.ingest_web \
+  --url "$URL2" \
+  --source-org "$SOURCE_ORG" \
+  --doc-type "$DOC_TYPE"
+
+python -m intelireg.cli.ingest_web \
+  --url "$URL3" \
   --source-org "$SOURCE_ORG" \
   --doc-type "$DOC_TYPE"
 
@@ -110,6 +123,33 @@ SELECT node_index, path, heading_text, length(text_normalized) AS chars
 FROM nodes
 ORDER BY chars DESC
 LIMIT 10;
+"
+
+# Ver os Art. por nodes
+psql "$DATABASE_URL" -P pager=off -c "
+SELECT                                                                 
+  v.version_id,
+  d.title,
+  v.captured_at,
+  COUNT(n.*) AS total_nodes,
+  COUNT(*) FILTER (WHERE n.heading_text ~* '^(Art\.|ART\.)') AS arts_total,
+  COUNT(DISTINCT n.heading_text) FILTER (WHERE n.heading_text ~* '^(Art\.|ART\.)') AS arts_distinct,
+  (
+    SELECT array_agg(x.heading_text ORDER BY x.art_num, x.heading_text)
+    FROM (
+      SELECT DISTINCT
+        n2.heading_text,
+        regexp_replace(n2.heading_text, '\D', '', 'g')::int AS art_num
+      FROM nodes n2
+      WHERE n2.version_id = v.version_id
+        AND n2.heading_text ~* '^(Art\.|ART\.)'
+    ) x
+  ) AS quais
+FROM document_versions v
+JOIN documents d ON d.document_id = v.document_id
+LEFT JOIN nodes n ON n.version_id = v.version_id
+GROUP BY v.version_id, d.title, v.captured_at
+ORDER BY v.captured_at DESC;
 "
 
 # =========================================================

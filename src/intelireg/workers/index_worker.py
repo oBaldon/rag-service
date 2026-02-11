@@ -171,6 +171,38 @@ def build_chunks_from_nodes(
             if buf_words:
                 chunks_body.append(" ".join(buf_words).strip())
         else:
+            # EXPANDE candidatos que, individualmente, excedem o budget
+            expanded: List[str] = []
+            for c in candidates:
+                c = (c or "").strip()
+                if not c:
+                    continue
+                wc = len(c.split())
+                if wc <= budget:
+                    expanded.append(c)
+                    continue
+
+                # tenta por sentenças; se ainda ficar grande, quebra por palavras
+                sents = _split_by_sentences(c)
+                if len(sents) == 1 and len(sents[0].split()) > budget:
+                    words = sents[0].split()
+                    for i in range(0, len(words), budget):
+                        expanded.append(" ".join(words[i:i + budget]).strip())
+                else:
+                    for s in sents:
+                        s = s.strip()
+                        if not s:
+                            continue
+                        sw = len(s.split())
+                        if sw <= budget:
+                            expanded.append(s)
+                        else:
+                            words = s.split()
+                            for i in range(0, len(words), budget):
+                                expanded.append(" ".join(words[i:i + budget]).strip())
+
+            candidates = expanded
+
             buf: List[str] = []
             buf_wc = 0
             for c in candidates:
