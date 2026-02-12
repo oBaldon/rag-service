@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import json
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -118,7 +119,8 @@ def main() -> None:
         out_path = Path(args.out)
     else:
         day = datetime.now(timezone.utc).strftime("%Y%m%d")
-        out_path = runs_dir / f"{day}_ask.json"
+        rid = uuid.uuid4().hex[:8]
+        out_path = runs_dir / f"{day}_{rid}_ask.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
