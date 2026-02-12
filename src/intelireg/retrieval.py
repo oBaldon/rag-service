@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-import random
 import re
 from typing import Any, Dict, List, Optional
+from functools import lru_cache
+import os
+import importlib
 
 from intelireg.db import get_conn
 
 _TOKEN_RE = re.compile(r"[a-zA-ZÀ-ÿ0-9]+", re.UNICODE)
-
 
 def normalize_for_hash(s: str) -> str:
     return " ".join((s or "").split()).casefold()
@@ -18,15 +19,39 @@ def sha256_hex(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
 
 
-def fake_embedding_1536(seed_hex: str) -> str:
+# -------------------- embeddings reais (local) --------------------
+
+class EmbeddingProviderError(RuntimeError):
+    pass
+
+
+@lru_cache(maxsize=2)
+def _get_st_model(model_name: str):
+    # evita torch tentar inicializar CUDA (e spammar warning)
+    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+    try:
+        SentenceTransformer = importlib.import_module("sentence_transformers").SentenceTransformer
+    except Exception as e:
+        raise EmbeddingProviderError(
+            "sentence-transformers não está instalado. Instale com: pip install sentence-transformers"
+        ) from e
+    return SentenceTransformer(model_name, device="cpu")
+
+def _to_pgvector_literal(vec) -> str:
+    if hasattr(vec, "tolist"):
+        vec = vec.tolist()
+    return "[" + ",".join(f"{float(x):.6f}" for x in vec) + "]"
+
+
+def embed_query_pgvector(question: str, embedding_model_id: str) -> str:
     """
-    Placeholder determinístico para o MVP.
-    Retorna string no formato aceito pelo pgvector: [0.1,0.2,...]
+    Embedding real da query (E5): prefixo 'query: ' + normalize_embeddings=True.
+    Retorna literal aceito pelo pgvector.
     """
-    seed = int(seed_hex[:16], 16)
-    rng = random.Random(seed)
-    vals = [rng.uniform(-1.0, 1.0) for _ in range(1536)]
-    return "[" + ",".join(f"{v:.6f}" for v in vals) + "]"
+    model_name = embedding_model_id.split("@", 1)[0].strip()
+    model = _get_st_model(model_name)
+    vec = model.encode(["query: " + (question or "")], normalize_embeddings=True, show_progress_bar=False)[0]
+    return _to_pgvector_literal(vec)
 
 
 _FTS_STOPWORDS = {
@@ -145,16 +170,6 @@ def _fts_hits(cur, pipeline_version: str, version_id: Optional[str], ts_func: st
     cur.execute(sql, {"q": text, "pipeline_version": pipeline_version, "version_id": version_id})
     return int(cur.fetchone()[0])
 
-
-def embed_query_placeholder(question: str) -> str:
-    """
-    Embedding determinístico da pergunta (placeholder) para ser compatível com o MVP atual.
-    No futuro: substituir por embeddings reais.
-    """
-    qh = sha256_hex("q|" + normalize_for_hash(question))
-    return fake_embedding_1536(qh)
-
-
 def hybrid_retrieve_rrf(
     question: str,
     pipeline_version: str,
@@ -172,7 +187,13 @@ def hybrid_retrieve_rrf(
     - Combina via RRF (k = rrf_k)
     Retorna linhas já enriquecidas com metadados + texto + node_refs.
     """
-    qvec = embed_query_placeholder(question)
+    if n1_fts <= 0 and n2_vec <= 0:
+        return []
+
+    qvec: Optional[str] = None
+    if n2_vec > 0:
+        qvec = embed_query_pgvector(question, embedding_model_id=embedding_model_id)
+
 
     # --- Seleção automática da estratégia FTS (resolve "pergunta natural -> 0 hits") ---
     # 1) websearch_to_tsquery(question)
@@ -181,7 +202,7 @@ def hybrid_retrieve_rrf(
     fts_mode = "websearch"
     fts_text = question
 
-    sql = """
+    sql_hybrid = """
     WITH
     q AS (
       SELECT
@@ -269,7 +290,132 @@ def hybrid_retrieve_rrf(
     ORDER BY s.rrf_score DESC
     LIMIT %(top_k)s;
     """
+    # FTS-only (n2_vec = 0)
+    sql_fts_only = """
+    WITH
+    q AS (
+      SELECT
+        CASE
+          WHEN %(fts_mode)s = 'websearch' THEN websearch_to_tsquery('portuguese', %(fts_text)s)
+          WHEN %(fts_mode)s = 'plain' THEN plainto_tsquery('portuguese', %(fts_text)s)
+          ELSE to_tsquery('portuguese', %(fts_text)s)
+        END AS q
+    ),
+    fts AS (
+      SELECT
+        c.chunk_id,
+        row_number() OVER (ORDER BY ts_rank_cd(c.tsv, q.q) DESC) AS r_fts,
+        ts_rank_cd(c.tsv, q.q) AS s_fts
+      FROM embedding_chunks c
+      JOIN document_versions v ON v.version_id = c.version_id
+      CROSS JOIN q
+      WHERE v.status = 'INDEXED'
+        AND c.pipeline_version = %(pipeline_version)s
+        AND ( %(version_id)s::uuid IS NULL OR c.version_id = %(version_id)s::uuid )
+        AND c.tsv @@ q.q
+      ORDER BY s_fts DESC
+      LIMIT %(n1_fts)s
+    ),
+    scored AS (
+      SELECT
+        f.chunk_id,
+        f.r_fts,
+        f.s_fts,
+        NULL::int AS r_vec,
+        NULL::double precision AS d_vec,
+        (1.0 / (%(rrf_k)s + f.r_fts)) AS rrf_score
+      FROM fts f
+    )
+    SELECT
+      s.chunk_id,
+      s.rrf_score,
+      s.r_fts,
+      s.s_fts,
+      s.r_vec,
+      s.d_vec,
 
+      c.version_id,
+      c.pipeline_version,
+      c.chunk_index,
+      c.tokens_count,
+      c.text,
+      c.node_refs,
+
+      d.document_id,
+      d.title,
+      d.source_org,
+      d.doc_type,
+
+      v.source_url,
+      v.final_url,
+      v.captured_at
+    FROM scored s
+    JOIN embedding_chunks c ON c.chunk_id = s.chunk_id
+    JOIN document_versions v ON v.version_id = c.version_id
+    JOIN documents d ON d.document_id = v.document_id
+    ORDER BY s.rrf_score DESC
+    LIMIT %(top_k)s;
+    """
+
+    # Vec-only (n1_fts = 0)
+    sql_vec_only = """
+    WITH
+    vec AS (
+      SELECT
+        e.chunk_id,
+        row_number() OVER (ORDER BY (e.embedding <=> %(qvec)s::vector) ASC) AS r_vec,
+        (e.embedding <=> %(qvec)s::vector) AS d_vec
+      FROM chunk_embeddings e
+      JOIN embedding_chunks c ON c.chunk_id = e.chunk_id
+      JOIN document_versions v ON v.version_id = c.version_id
+      WHERE v.status = 'INDEXED'
+        AND c.pipeline_version = %(pipeline_version)s
+        AND e.pipeline_version = %(pipeline_version)s
+        AND e.embedding_model_id = %(embedding_model_id)s
+        AND ( %(version_id)s::uuid IS NULL OR c.version_id = %(version_id)s::uuid )
+      ORDER BY d_vec ASC
+      LIMIT %(n2_vec)s
+    ),
+    scored AS (
+      SELECT
+        v.chunk_id,
+        NULL::int AS r_fts,
+        NULL::double precision AS s_fts,
+        v.r_vec,
+        v.d_vec,
+        (1.0 / (%(rrf_k)s + v.r_vec)) AS rrf_score
+      FROM vec v
+    )
+    SELECT
+      s.chunk_id,
+      s.rrf_score,
+      s.r_fts,
+      s.s_fts,
+      s.r_vec,
+      s.d_vec,
+
+      c.version_id,
+      c.pipeline_version,
+      c.chunk_index,
+      c.tokens_count,
+      c.text,
+      c.node_refs,
+
+      d.document_id,
+      d.title,
+      d.source_org,
+      d.doc_type,
+
+      v.source_url,
+      v.final_url,
+      v.captured_at
+    FROM scored s
+    JOIN embedding_chunks c ON c.chunk_id = s.chunk_id
+    JOIN document_versions v ON v.version_id = c.version_id
+    JOIN documents d ON d.document_id = v.document_id
+    ORDER BY s.rrf_score DESC
+    LIMIT %(top_k)s;
+    """
     with get_conn() as conn:
         with conn.cursor() as cur:
             # Decide modo do FTS apenas se FTS está habilitado (n1_fts > 0)
@@ -307,7 +453,16 @@ def hybrid_retrieve_rrf(
                 "fts_mode": fts_mode,
                 "fts_text": fts_text,
             }
-            cur.execute(sql, params)
+            if n1_fts > 0 and n2_vec > 0:
+                cur.execute(sql_hybrid, params)
+            elif n1_fts > 0 and n2_vec <= 0:
+                # FTS-only: não exige qvec, mas params pode conter sem problema
+                cur.execute(sql_fts_only, params)
+            else:
+                # vec-only
+                if qvec is None:
+                    raise RuntimeError("n2_vec > 0 mas qvec não foi calculado (embedding_model_id inválido?)")
+                cur.execute(sql_vec_only, params)
             rows = cur.fetchall()
 
     results: List[Dict[str, Any]] = []

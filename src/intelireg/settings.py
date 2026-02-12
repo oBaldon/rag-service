@@ -11,7 +11,7 @@ DATABASE_URL_ENV = "DATABASE_URL"  # já usado pelo config.py
 
 # Pipeline (index-level)
 PIPELINE_VERSION = "mvp-v1"
-EMBEDDING_MODEL_ID = "text-embedding-3-small@1536"
+EMBEDDING_MODEL_ID = "intfloat/multilingual-e5-small@384"
 
 # Canonicalização (ingestão)
 CANON_MAX_HEADING_LEVEL = 3

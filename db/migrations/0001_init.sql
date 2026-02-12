@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS chunk_embeddings (
   chunk_id UUID NOT NULL REFERENCES embedding_chunks(chunk_id) ON DELETE CASCADE,
   embedding_model_id TEXT NOT NULL,
   pipeline_version TEXT NOT NULL,
-  embedding VECTOR(1536) NOT NULL,
+  embedding VECTOR(384) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (chunk_id, embedding_model_id, pipeline_version)
 );

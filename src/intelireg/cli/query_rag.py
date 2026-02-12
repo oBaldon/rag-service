@@ -11,6 +11,7 @@ from uuid import uuid4
 from intelireg import settings
 from intelireg.audit import record_query_run
 from intelireg.retrieval import hybrid_retrieve_rrf
+from intelireg.settings import EMBEDDING_MODEL_ID
 
 
 def ensure_runs_dir() -> Path:
@@ -109,9 +110,7 @@ def main() -> None:
     # Aviso operacional: não tenta "detectar fake", só alerta o operador.
     if getattr(args, "n2_vec", 0) > 0:
         print(
-            "[warn] n2-vec > 0: busca vetorial habilitada. "
-            "Se os embeddings ainda forem placeholder, o ranking pode ficar mais ruidoso. "
-            "Use n2-vec=0 para modo FTS-only durante o MVP.",
+            f"[info] n2-vec > 0: busca vetorial habilitada (embedding_model_id={EMBEDDING_MODEL_ID}).",
             file=sys.stderr,
         )
 
