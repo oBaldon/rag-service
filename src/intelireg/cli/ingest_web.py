@@ -29,7 +29,8 @@ _ws_re = re.compile(r"\s+")
 # IMPORTANT: não use IGNORECASE aqui.
 # "art. 15" (minúsculo) aparece em citações no preâmbulo via <a> inline e pode virar linha
 # se o HTML for quebrado; isso não deve virar nó de artigo.
-_art_re = re.compile(r"^(?:Art\.|ART\.)\s*(\d+)\s*([º°])?\s*\.?\s*(.*)$")
+_ORDINAL_SYMS = "º°oO"  # NFKC: 'º' -> 'o'
+_art_re = re.compile(rf"^(?:Art\.|ART\.)\s*(\d+)\s*([{_ORDINAL_SYMS}])?\s*\.?\s*(.*)$")
 
 _cap_re = re.compile(r"^CAP[ÍI]TULO\s+([IVXLC\d]+)\b", re.IGNORECASE)
 _sec_re = re.compile(r"^Se[cç]ão\s+([IVXLC\d]+)\b", re.IGNORECASE)
@@ -43,8 +44,7 @@ _SKIP_LINE_RE = re.compile(
 _art_split_re = re.compile(r"(?=(?:Art\.|ART\.)\s*\d+)")
 
 # Para sanity-check / splitting: "Art. 12" em qualquer lugar da linha
-_ART_IN_LINE_RE = re.compile(r"\b(?:Art\.|ART\.)\s*\d+\b")
-
+_ART_IN_LINE_RE = re.compile(rf"\b(?:Art\.|ART\.)\s*\d+\s*(?:[{_ORDINAL_SYMS}])?\b")
 
 def normalize_text(s: str) -> str:
     s = unicodedata.normalize("NFKC", s or "")
@@ -253,7 +253,14 @@ def extract_nodes_datalegis(
 
     # Dica bruta do "tamanho" (quantos Art. existem no HTML).
     # Se extraímos muito menos do que isso, provavelmente cortamos cedo por heurística.
-    raw_art_hint = len(_ART_IN_LINE_RE.findall(ato.get_text(" ", strip=True)))
+    raw_art_hint = 0
+    for p in ato.find_all("p"):
+        t = normalize_text(p.get_text(" ", strip=True))
+        if not t:
+            continue
+        if t.startswith(("Art.", "ART.")):
+            raw_art_hint += max(1, len(_ART_IN_LINE_RE.findall(t)))
+
 
     title = extract_title(soup)
 
@@ -277,22 +284,11 @@ def extract_nodes_datalegis(
         Heurística: se uma linha começa com Art. e contém múltiplos Art., quebra em múltiplas partes.
         """
         if el.name == "p":
-            had_br = el.find("br") is not None
-
-            if had_br:
-                # substitui <br> por '\n' (uma única vez)
-                for br in el.find_all("br"):
-                    br.replace_with("\n")
-
-                # >>> IMPORTANTE <<<
-                # O seu "código duplicado que funciona" acaba CAINDO no caminho de strip=True,
-                # ou seja, ele ACHATA as quebras em espaços.
-                # Para reproduzir isso sem gambiarra, nós "flattenamos" aqui:
-                raw = el.get_text(" ", strip=True)
-                normalized = normalize_text(raw)
-            else:
-                raw = el.get_text(" ", strip=True)
-                normalized = normalize_text(raw)
+            # Achata <br> => evita separar "CAPÍTULO" de "I" e "Art." do número
+            for br in el.find_all("br"):
+                br.replace_with("\n")
+            raw = el.get_text(" ", strip=True)
+            normalized = normalize_text(raw)
         else:
             normalized = normalize_text_keep_newlines(_table_to_text(el))
 
@@ -322,7 +318,7 @@ def extract_nodes_datalegis(
             cur = out[i].strip()
             if cur in ("Art.", "ART.") and i + 1 < len(out):
                 nxt = out[i + 1].strip()
-                if re.match(r"^\d+\s*([º°])?\.?\s*.*$", nxt):
+                if re.match(r"^\d+\s*([º°oO])?\.?\s*.*$", nxt):
                     merged.append(f"{cur} {nxt}".strip())
                     i += 2
                     continue
@@ -663,6 +659,8 @@ def extract_nodes_datalegis(
                 assert m is not None
                 art_num = m.group(1)
                 sym = m.group(2) or ""
+                if sym in ("o", "O"):
+                    sym = "º"
                 remainder = (m.group(3) or "").strip()
                 head = f"Art. {art_num}{sym}".strip()
                 start_article(head, art_num, remainder)
@@ -735,6 +733,8 @@ def extract_nodes_datalegis(
                 assert m is not None
                 art_num = m.group(1)
                 sym = m.group(2) or ""
+                if sym in ("o", "O"):
+                    sym = "º"
                 remainder = (m.group(3) or "").strip()
                 head = f"Art. {art_num}{sym}".strip()
                 start_article(head, art_num, remainder)
