@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,12 +26,26 @@ def main() -> None:
     ap.add_argument("--embedding-model-id", default=settings.EMBEDDING_MODEL_ID)
 
     ap.add_argument("--n1-fts", type=int, default=settings.RETRIEVAL_N1)
-    ap.add_argument("--n2-vec", type=int, default=settings.RETRIEVAL_N2)
+    ap.add_argument(
+        "--n2-vec",
+        type=int,
+        default=0,
+        help="Número de candidatos da busca vetorial (0 desativa). Default=0 (útil enquanto embeddings são placeholder).",
+    )
     ap.add_argument("--rrf-k", type=int, default=settings.RRF_K)
     ap.add_argument("--top-k", type=int, default=settings.TOP_K_DEFAULT)
 
     ap.add_argument("--out", default=None, help="JSON saída. Default: storage/runs/<date>_ask.json")
     args = ap.parse_args()
+  
+    # Aviso operacional: não tenta "detectar fake", só alerta o operador.
+    if getattr(args, "n2_vec", 0) > 0:
+        print(
+            "[warn] n2-vec > 0: busca vetorial habilitada. "
+            "Se os embeddings ainda forem placeholder, o ranking pode ficar mais ruidoso. "
+            "Use n2-vec=0 para modo FTS-only durante o MVP.",
+            file=sys.stderr,
+        )
 
     rows = hybrid_retrieve_rrf(
         question=args.question,

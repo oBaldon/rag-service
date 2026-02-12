@@ -28,7 +28,7 @@ INDEX_WORKER_SLEEP_SECONDS = 5.0
 
 # Retrieval (vamos usar depois no query_rag)
 RETRIEVAL_N1 = 50
-RETRIEVAL_N2 = 50
+RETRIEVAL_N2 = 0 # default off (embeddings ainda são placeholder no MVP)
 RRF_K = 60
 TOP_K_DEFAULT = 12
 HNSW_EF_SEARCH = 120
