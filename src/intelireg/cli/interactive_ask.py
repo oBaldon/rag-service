@@ -11,9 +11,11 @@ from typing import Any, Dict, Optional
 from intelireg import settings
 from intelireg.answer import extractive_answer
 from intelireg.retrieval import hybrid_retrieve_rrf
+from intelireg.rag_runs import insert_rag_run
 
 _WARNED_VEC = False
-
+_LAST_RUN: Optional[Dict[str, Any]] = None
+_LAST_PATH: Optional[Path] = None
 
 def ensure_runs_dir() -> Path:
     runs = Path("storage") / "runs"
@@ -42,7 +44,7 @@ def maybe_warn_vec_once(n2_vec: int) -> None:
 def print_header(args: argparse.Namespace) -> None:
     print("InteliReg — CLI interativo (ask)")
     print("Digite a pergunta e pressione Enter.")
-    print("Comandos: /exit  /help  /params")
+    print("Comandos: /exit  /help  /params  /last  /sources  /json")
     print("")
     print("Parâmetros ativos:")
     print(
@@ -58,6 +60,9 @@ def print_help() -> None:
         "  /exit   sai\n"
         "  /help   mostra esta ajuda\n"
         "  /params mostra os parâmetros atuais\n"
+        "  /last   mostra o último run salvo (path + preview)\n"
+        "  /sources lista as fontes do último run (ranks/scores)\n"
+        "  /json   imprime o JSON do último run\n"
         "  /set n2 <int>     (ex: /set n2 0 | /set n2 10)\n"
         "  /set topk <int>   (ex: /set topk 5)\n"
         "  /set n1 <int>     (ex: /set n1 50)\n"
@@ -81,6 +86,55 @@ def print_params(args: argparse.Namespace) -> None:
         f"  top_k={args.top_k}\n"
     )
 
+def _need_last() -> bool:
+    global _LAST_RUN, _LAST_PATH
+    if not _LAST_RUN or not _LAST_PATH:
+        print("Nenhum run ainda. Faça uma pergunta primeiro.\n")
+        return False
+    return True
+
+def print_last() -> None:
+    global _LAST_RUN, _LAST_PATH
+    if not _need_last():
+        return
+    ans = (_LAST_RUN.get("answer") or {}).get("text") or ""
+    preview = ans.strip().replace("\n", " ")
+    if len(preview) > 180:
+        preview = preview[:180] + "..."
+    print(f"last_run: {_LAST_PATH}")
+    print(f"preview: {preview}\n")
+
+def print_sources() -> None:
+    global _LAST_RUN
+    if not _need_last():
+        return
+    sources = _LAST_RUN.get("sources") or []
+    if not sources:
+        print("Sem sources no último run.\n")
+        return
+    print("sources:")
+    for s in sources:
+        sid = s.get("source_id")
+        doc = s.get("document") or {}
+        title = doc.get("title") or ""
+        rrf = s.get("rrf_score")
+        fts_r = s.get("fts_rank")
+        vec_r = s.get("vec_rank")
+        vec_d = s.get("vec_distance")
+        # primeira “citação” (heading/path) se existir
+        cits = s.get("citations") or []
+        head = ""
+        if cits:
+            head = f" | {cits[0].get('heading','')} ({cits[0].get('path','')})"
+        print(f"  {sid} | rrf={rrf} fts={fts_r} vec={vec_r} d={vec_d} | {title}{head}")
+    print("")
+
+def print_last_json() -> None:
+    global _LAST_RUN
+    if not _need_last():
+        return
+    print(json.dumps(_LAST_RUN, ensure_ascii=False, indent=2))
+    print("")
 
 def build_sources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     sources: list[dict[str, Any]] = []
@@ -115,7 +169,7 @@ def build_sources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sources
 
 
-def one_ask(args: argparse.Namespace, question: str) -> Path:
+def one_ask(args: argparse.Namespace, question: str) -> tuple[Path, Dict[str, Any]]:
     maybe_warn_vec_once(args.n2_vec)
 
     rows = hybrid_retrieve_rrf(
@@ -157,6 +211,12 @@ def one_ask(args: argparse.Namespace, question: str) -> Path:
     out_path = make_run_path("ask", out_dir=args.out_dir)
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    # Micropasso Etapa 6: persiste também no Postgres (rag_runs) com o MESMO JSON
+    run_id = insert_rag_run(out)
+    if run_id:
+        print(f"[db] rag_runs.run_id={run_id}", file=sys.stderr)
+
+
     # imprime resposta
     print(answer_text)
     if cited:
@@ -167,7 +227,7 @@ def one_ask(args: argparse.Namespace, question: str) -> Path:
     print(str(out_path))
     print("")
 
-    return out_path
+    return out_path, out
 
 
 def main() -> None:
@@ -206,6 +266,15 @@ def main() -> None:
         if q in {"/params"}:
             print_params(args)
             continue
+        if q in {"/last"}:
+            print_last()
+            continue
+        if q in {"/sources"}:
+            print_sources()
+            continue
+        if q in {"/json"}:
+            print_last_json()
+            continue
 
         # /set <param> <value>
         if q.startswith("/set "):
@@ -240,7 +309,10 @@ def main() -> None:
             print_params(args)
             continue
 
-        one_ask(args, q)
+        out_path, out = one_ask(args, q)
+        global _LAST_RUN, _LAST_PATH
+        _LAST_RUN = out
+        _LAST_PATH = out_path
 
 
 if __name__ == "__main__":

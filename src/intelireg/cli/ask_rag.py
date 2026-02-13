@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 from intelireg import settings
 from intelireg.answer import extractive_answer
 from intelireg.retrieval import hybrid_retrieve_rrf
-from intelireg.settings import EMBEDDING_MODEL_ID
+from intelireg.rag_runs import insert_rag_run
 
 
 def ensure_runs_dir() -> Path:
@@ -43,7 +43,8 @@ def main() -> None:
     # Aviso operacional: não tenta "detectar fake", só alerta o operador.
     if getattr(args, "n2_vec", 0) > 0:
         print(
-            f"[info] n2-vec > 0: busca vetorial habilitada (embedding_model_id={EMBEDDING_MODEL_ID}).",
+            "[warn] n2-vec > 0: busca vetorial habilitada. "
+            f"Isso pode mudar o ranking e consumir mais CPU (embedding_model_id={args.embedding_model_id}).",
             file=sys.stderr,
         )
 
@@ -123,6 +124,11 @@ def main() -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    
+    # Micropasso Etapa 6: persiste também no Postgres (rag_runs) com o MESMO JSON
+    run_id = insert_rag_run(out)
+    if run_id:
+        print(f"[db] rag_runs.run_id={run_id}", file=sys.stderr)
 
     # imprime resposta no terminal também
     print(answer)
