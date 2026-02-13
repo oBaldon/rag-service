@@ -8,6 +8,7 @@ import os
 import importlib
 
 from intelireg.db import get_conn
+import intelireg.settings as settings
 
 _TOKEN_RE = re.compile(r"[a-zA-ZÀ-ÿ0-9]+", re.UNICODE)
 
@@ -35,7 +36,12 @@ def _get_st_model(model_name: str):
         raise EmbeddingProviderError(
             "sentence-transformers não está instalado. Instale com: pip install sentence-transformers"
         ) from e
-    return SentenceTransformer(model_name, device="cpu")
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    return SentenceTransformer(
+        model_name,
+        device="cpu",
+        cache_folder=getattr(settings, "HF_CACHE_DIR", None),
+    )
 
 def _to_pgvector_literal(vec) -> str:
     if hasattr(vec, "tolist"):
@@ -453,6 +459,12 @@ def hybrid_retrieve_rrf(
                 "fts_mode": fts_mode,
                 "fts_text": fts_text,
             }
+            
+            # pgvector (HNSW): aumenta recall/estabilidade do ranking (custo: CPU)
+            if n2_vec and n2_vec > 0:
+                cur.execute(f"SET hnsw.ef_search = {settings.HNSW_EF_SEARCH}")
+
+
             if n1_fts > 0 and n2_vec > 0:
                 cur.execute(sql_hybrid, params)
             elif n1_fts > 0 and n2_vec <= 0:

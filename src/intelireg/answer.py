@@ -4,93 +4,145 @@ import re
 from typing import Any, Dict, List, Tuple
 
 _TOKEN_RE = re.compile(r"[a-zA-ZÀ-ÿ0-9]+", re.UNICODE)
-_ART_HEADING_RE = re.compile(r"^Art\.\s*\d+", re.IGNORECASE)
-_NUM_RE = re.compile(r"\d+(?:[.,]\d+)?%?", re.UNICODE)
+_DECIMAL_RE = re.compile(r"\b\d+[\.,]\d+\b")
 
-# bem mínimo (só pra não “vencer” por ruído)
-_STOPWORDS = {
-    "quais", "qual", "que", "para", "por", "com", "sem",
-    "sobre", "como", "quando", "onde",
-    "dos", "das", "do", "da", "de", "em", "no", "na", "nos", "nas",
+_STOP = {
+    "quais", "qual", "que", "o", "a", "os", "as",
     "um", "uma", "uns", "umas",
+    "de", "do", "da", "dos", "das",
+    "para", "por", "com", "sem", "em", "no", "na", "nos", "nas",
+    "e", "ou",
+    "ter", "têm", "tem", "até", "sobre", "como",
+    "requisitos", "requisito", "exigencias", "exigência", "exigências",
+    "rdc", "lei", "decreto", "portaria", "resolucao", "resolução",
+    "numero", "número", "ano",
 }
 
 
-def _keywords(question: str, max_terms: int = 10) -> List[str]:
-    q = question or ""
+def _keywords(question: str, max_terms: int = 12) -> List[str]:
+    """Extrai keywords para busca extrativa (MVP).
 
-    # 1) palavras: agora aceita >= 3 (pra pegar siglas tipo "THC")
-    toks = [t.casefold() for t in _TOKEN_RE.findall(q)]
-    toks = [t for t in toks if len(t) >= 3 and t not in _STOPWORDS]
+    - Mantém tokens alfanuméricos (inclui números)
+    - Captura também decimais (0,2 / 0.2) como termo próprio
+    - Remove stopwords comuns
+    """
+    q = (question or "").casefold().strip()
+    if not q:
+        return []
 
-    # 2) números/decimais/percentuais: ex. "0,2" / "0,2%" / "0.2"
-    nums = [n.casefold() for n in _NUM_RE.findall(q)]
-    toks.extend(nums)
+    kws: List[str] = []
 
-    # dedup preservando ordem
-    seen = set()
-    out = []
-    for t in toks:
-        if t not in seen:
-            seen.add(t)
-            out.append(t)
-        if len(out) >= max_terms:
+    # 1) decimais primeiro (mais discriminativos)
+    for m in _DECIMAL_RE.finditer(q):
+        dec = m.group(0)
+        if dec not in kws:
+            kws.append(dec)
+        alt = dec.replace(",", ".") if "," in dec else dec.replace(".", ",")
+        if alt not in kws:
+            kws.append(alt)
+
+    # 2) tokens normais
+    tokens = _TOKEN_RE.findall(q)
+    for t in tokens:
+        if t in _STOP:
+            continue
+        if t.isdigit():
+            # números muito curtos ajudam (0/2), mas são pouco discriminativos
+            if len(t) <= 2 and t not in kws:
+                kws.append(t)
+            continue
+        if len(t) >= 3 and t not in kws:
+            kws.append(t)
+
+        if len(kws) >= max_terms:
             break
-    return out
+
+    return kws
 
 
-def extractive_answer(question: str, rows: List[Dict[str, Any]]) -> Tuple[str, List[str]]:
+def _score_line(line_norm: str, kws: List[str]) -> float:
+    if not line_norm or not kws:
+        return 0.0
+
+    score = 0.0
+    for kw in kws:
+        if not kw:
+            continue
+        if kw.isdigit() and len(kw) <= 2:
+            # números curtos: peso menor (evita "0" bater em tudo)
+            if re.search(rf"\b{re.escape(kw)}\b", line_norm):
+                score += 0.25
+        elif re.match(r"^\d+[\.,]\d+$", kw):
+            if kw in line_norm:
+                score += 2.0
+        else:
+            if kw in line_norm:
+                score += 1.0
+    return score
+
+
+def extractive_answer(question: str, sources: List[Dict[str, Any]]) -> Tuple[str, List[str]]:
+    """Gera uma resposta extrativa (snippet) varrendo TODAS as fontes.
+
+    Retorna:
+      (answer_text, [source_id])
     """
-    MVP sem LLM: pega o melhor chunk e retorna 1–3 linhas mais relevantes.
-    Retorna (answer, cited_source_ids) onde source_id é "S1", "S2"...
-    """
-    if not rows:
-        return "Não encontrei evidência suficiente no corpus indexado.", []
+    if not sources:
+        return "", []
 
     kws = _keywords(question)
-    # usa top-1 por RRF, mas tenta achar linhas “boas”
-    best = rows[0]
-    text = (best.get("text") or "").strip()
-    if not text:
-        return "Não encontrei evidência suficiente no corpus indexado.", []
+    best = None  # (score, rrf, -source_idx, -line_idx)
+    best_info = None  # (source, lines, line_idx)
 
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    if not lines:
-        return "Não encontrei evidência suficiente no corpus indexado.", []
- 
-    # sem keywords: devolve um preview honesto
-    if not kws:
-        preview = "\n".join(lines[:6])
-        return preview, ["S1"]
+    for si, s in enumerate(sources):
+        text = (s.get("text") or "").strip()
+        if not text:
+            continue
 
-    # score por ocorrência de keywords
-    scored = []
-    for i, ln in enumerate(lines):
-        ln_cf = ln.casefold()
-        score = sum(1 for k in kws if k in ln_cf)
-        scored.append((score, i, ln))
+        lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
+        if not lines:
+            continue
 
-    # IMPORTANTE: em empate, preferir a PRIMEIRA linha (i menor),
-    # evitando “cair” no fim do chunk por causa do reverse sort.
-    # Ordenação determinística:
-    # - maior score primeiro
-    # - em empate, menor índice primeiro (pega a ocorrência mais cedo no chunk)
-    scored.sort(key=lambda t: (-t[0], t[1]))
-    top_score, top_i, _ = scored[0]
-    
-    # se nada bate, devolve o começo do chunk (mais “honesto”)
-    if top_score == 0:
-        preview = "\n".join(lines[:6])
-        return preview, ["S1"]
+        rrf = float(s.get("rrf_score") or 0.0)
 
-    # pega janela ao redor da melhor linha, mas tenta “ancorar” em um Art. acima
-    start = max(0, top_i - 1)
-    for j in range(top_i, max(-1, top_i - 4), -1):  # olha até 3 linhas acima
-        if _ART_HEADING_RE.match(lines[j]):
-            start = j
-            break
-    end = min(len(lines), start + 3)  # 1–3 linhas no total
-    snippet = "\n".join(lines[start:end])
+        for li, ln in enumerate(lines):
+            sc = _score_line(ln.casefold(), kws)
+            if sc <= 0:
+                continue
 
-    # resposta simples: snippet + referência S1
-    return snippet, ["S1"]
+            key = (sc, rrf, -si, -li)
+            if best is None or key > best:
+                best = key
+                best_info = (s, lines, li)
+
+    # fallback: primeira fonte, primeiras linhas
+    if best_info is None:
+        s0 = sources[0]
+        text0 = (s0.get("text") or "").strip()
+        lines0 = [ln.rstrip() for ln in text0.splitlines() if ln.strip()]
+        snippet = "\n".join(lines0[:4]).strip()
+        return snippet, [s0.get("source_id") or "S1"]
+
+    s, lines, li = best_info
+
+    start = max(0, li - 1)
+    end = min(len(lines), li + 3)
+
+    # heurística: "Art." + "51." => inclui ambos
+    if li >= 1 and lines[li - 1].strip() == "Art." and re.match(r"^\d+\.?\s*$", lines[li].strip()):
+        start = li - 1
+        end = min(len(lines), li + 3)
+        
+    elif li >= 2 and re.match(r"^\d+\.?\s*$", lines[li - 1].strip()) and lines[li - 2].strip() == "Art.":
+        start = li - 2
+
+    if lines[start].strip() == "Art." and start + 1 < len(lines):
+        end = max(end, min(len(lines), start + 2))
+
+
+    snippet_lines = [ln for ln in lines[start:end] if ln.strip()]
+    snippet = "\n".join(snippet_lines).strip()
+    if len(snippet) > 1200:
+        snippet = snippet[:1200].rstrip() + "…"
+
+    return snippet, [s.get("source_id") or "S1"]
