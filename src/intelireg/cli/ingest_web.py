@@ -46,6 +46,20 @@ _art_split_re = re.compile(r"(?=(?:Art\.|ART\.)\s*\d+)")
 # Para sanity-check / splitting: "Art. 12" em qualquer lugar da linha
 _ART_IN_LINE_RE = re.compile(rf"\b(?:Art\.|ART\.)\s*\d+\s*(?:[{_ORDINAL_SYMS}])?\b")
 
+
+# Headings estruturais quando aparecem "no meio" da linha (HTML às vezes cola)
+_CAP_IN_LINE_RE = re.compile(r"\bCAP[ÍI]TULO\s+[IVXLC\d]+\b", re.IGNORECASE)
+_SEC_IN_LINE_RE = re.compile(r"\bSe[cç]ão\s+[IVXLC\d]+\b", re.IGNORECASE)
+_SUBSEC_IN_LINE_RE = re.compile(r"\bSubse[cç]ão\s+[IVXLC\d]+\b", re.IGNORECASE)
+_ANEXO_IN_LINE_RE = re.compile(r"\bANEXO(\s+[IVXLC\d]+)?\b", re.IGNORECASE)
+
+_STRUCT_IN_LINE_RES = (
+    _CAP_IN_LINE_RE,
+    _SEC_IN_LINE_RE,
+    _SUBSEC_IN_LINE_RE,
+    _ANEXO_IN_LINE_RE,
+)
+
 def normalize_text(s: str) -> str:
     s = unicodedata.normalize("NFKC", s or "")
     s = s.replace("\u00a0", " ")  # nbsp
@@ -283,34 +297,137 @@ def extract_nodes_datalegis(
         - <table>: converte em texto com '\n' entre linhas.
         Heurística: se uma linha começa com Art. e contém múltiplos Art., quebra em múltiplas partes.
         """
+        
+        out: List[str] = []  # <<< BUGFIX: precisava existir
         if el.name == "p":
-            # Achata <br> => evita separar "CAPÍTULO" de "I" e "Art." do número
+            # Mantém quebras reais de <br> sem criar linhas por tags inline (<a>, <b>, etc.)
+            BR = "<<<BR>>>"
             for br in el.find_all("br"):
-                br.replace_with("\n")
-            raw = el.get_text(" ", strip=True)
-            normalized = normalize_text(raw)
+                br.replace_with(BR)
+            raw = el.get_text(" ", strip=True).replace(BR, "\n")
+            normalized = normalize_text_keep_newlines(raw)
         else:
             normalized = normalize_text_keep_newlines(_table_to_text(el))
 
         if not normalized:
             return []
+        
+        # Acumula as linhas "final" que vão ser processadas pelo parser (CAP/Seção/Subseção/Art/etc.)
+        out: List[str] = []      
 
-        out: List[str] = []
-        for line in normalized.splitlines():
-            line = line.strip()
-            if not line:
+        def _split_inline_structs(line: str) -> List[str]:
+            """
+            Quebra headings estruturais quando aparecem colados no meio da linha:
+              "... publicação. CAPÍTULO I ..."
+              "... providências. Seção II ..."
+              "CAPÍTULO V ... Seção I ..."
+
+            Heurísticas para evitar falsos positivos:
+            - split se:
+              (a) o prefixo termina com pontuação típica (. ; : )), OU
+              (b) a linha começa com um heading estrutural (CAP/Seção/Subseção/ANEXO) e outro heading aparece depois.
+            """
+            s = (line or "").strip()
+            if not s:
+                return []
+
+            parts: List[str] = []
+            cur = s
+            guard = 0
+
+            while cur and guard < 10:
+                guard += 1
+
+                # linha começa com heading estrutural?
+                starts_struct = bool(_cap_re.match(cur) or _sec_re.match(cur) or _subsec_re.match(cur) or _anexo_re.match(cur))
+
+                best_m = None
+                best_start = None
+                for rx in _STRUCT_IN_LINE_RES:
+                    m = rx.search(cur)
+                    if m and m.start() > 0:
+                        if best_start is None or m.start() < best_start:
+                            best_start = m.start()
+                            best_m = m
+
+                if not best_m or best_start is None:
+                    parts.append(cur.strip())
+                    break
+
+                prefix = cur[:best_start].strip()
+                rest = cur[best_start:].strip()
+
+                if not prefix or not rest:
+                    parts.append(cur.strip())
+                    break
+
+                prefix_r = prefix.rstrip()
+                allow = False
+
+                # (a) pontuação antes do heading
+                if prefix_r and prefix_r[-1] in ".;:)":
+                    allow = True
+
+                # (b) linha já é uma cadeia de headings (CAPÍTULO ... Seção ... etc.)
+                if not allow and starts_struct:
+                    allow = True
+
+                # (c) prefixo por si só já parecia heading e agora veio outro (reforço)
+                if not allow and (_cap_re.match(prefix) or _sec_re.match(prefix) or _subsec_re.match(prefix) or _anexo_re.match(prefix)):
+                    allow = True
+
+                if not allow:
+                    parts.append(cur.strip())
+                    break
+
+                parts.append(prefix)
+                cur = rest
+
+            return [p for p in parts if p and p.strip()]
+
+        for raw_line in normalized.splitlines():
+            raw_line = raw_line.strip()
+            if not raw_line:
                 continue
 
-            hits = list(_ART_IN_LINE_RE.finditer(line))
-            if hits and hits[0].start() == 0 and len(hits) >= 2 and len(line) > 400:
-                parts = [p for p in _art_split_re.split(line) if p and p.strip()]
-                for p in parts:
-                    p2 = normalize_text(p)
-                    if p2:
-                        out.append(p2)
-                continue
+            # 0) primeiro: split de headings estruturais colados
+            for line in _split_inline_structs(raw_line):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # 1) Se existir "Art." (maiúsculo) NO MEIO da linha, separa prefixo e resto,
+                # para permitir que o parser detecte Artigos corretamente.
+                if not line.startswith(("Art.", "ART.")):
+                    m_mid = _ART_IN_LINE_RE.search(line)
+                    if m_mid and m_mid.start() > 0:
+                        prefix = normalize_text(line[:m_mid.start()])
+                        rest = normalize_text(line[m_mid.start():])
+                        if prefix:
+                            out.append(prefix)
+                        line = rest  # cai para o fluxo normal abaixo
 
-            out.append(line)
+                # 2) Se a linha termina com "... Art." (com prefixo), separa em duas linhas:
+                #   "<prefixo>" e "Art."
+                m_tail = re.search(r"\b(Art\.|ART\.)$", line)
+                if m_tail and m_tail.start() > 0:
+                    prefix = normalize_text(line[:m_tail.start()])
+                    art_tok = m_tail.group(1)
+                    if prefix:
+                        out.append(prefix)
+                    out.append(art_tok)
+                    continue
+
+                hits = list(_ART_IN_LINE_RE.finditer(line))
+                if hits and hits[0].start() == 0 and len(hits) >= 2:
+                    parts = [p for p in _art_split_re.split(line) if p and p.strip()]
+                    for p in parts:
+                        p2 = normalize_text(p)
+                        if p2:
+                            out.append(p2)
+                    continue
+
+                out.append(line)
 
         merged: List[str] = []
         i = 0
@@ -585,9 +702,18 @@ def extract_nodes_datalegis(
                 lines.insert(0, carry_art_prefix)
             carry_art_prefix = None
 
-        # se este bloco termina com "Art.", guarda para tentar juntar com o próximo bloco
-        if lines and lines[-1].strip() in ("Art.", "ART."):
-            carry_art_prefix = lines.pop(-1).strip()
+        # se este bloco termina com "... Art." (com ou sem prefixo), guarda o "Art."
+        # para tentar juntar com o próximo bloco (ex.: próximo começa com "48.")
+        if lines:
+            last = lines[-1].strip()
+            m = re.search(r"\b(Art\.|ART\.)$", last)
+            if m:
+                prefix = last[:m.start()].strip()
+                art_tok = m.group(1)
+                lines.pop(-1)
+                if prefix:
+                    lines.append(prefix)
+                carry_art_prefix = art_tok
 
         # Só consideramos "heading centralizado" quando o <p> é um único bloco curto.
         # Se tiver múltiplas linhas, tratamos linha-a-linha para favorecer detecção de Art./CAP etc.

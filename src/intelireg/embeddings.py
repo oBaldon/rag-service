@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import List, Sequence
+from intelireg import settings
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -20,7 +21,7 @@ def _get_model(model_name: str) -> "SentenceTransformer":
             "sentence-transformers não está instalado. "
             "Instale com: pip install sentence-transformers"
         )
-    return SentenceTransformer(model_name, device="cpu")
+    return SentenceTransformer(model_name, device="cpu",cache_folder=str(settings.HF_CACHE_DIR),)
 
 
 def embed_texts(
