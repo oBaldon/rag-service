@@ -30,8 +30,4 @@ ENV/
 !.env.example
 
 # ===== Outputs / artifacts =====
-storage/runs/*
-!storage/runs/.gitkeep
-storage/hf_cache/*
-!storage/hf_cache/.gitkeep
-storage/*.gz
+storage/*
