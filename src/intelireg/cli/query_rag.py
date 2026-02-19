@@ -11,7 +11,6 @@ from uuid import uuid4
 from intelireg import settings
 from intelireg.audit import record_query_run
 from intelireg.retrieval import hybrid_retrieve_rrf
-from intelireg.settings import EMBEDDING_MODEL_ID
 
 
 def ensure_runs_dir() -> Path:
@@ -51,6 +50,13 @@ def build_output(
                 "fts_score": r["fts_score"],
                 "vec_rank": r["vec_rank"],
                 "vec_distance": r["vec_distance"],
+                "scores": {
+                    "rrf_score": r["rrf_score"],
+                    "fts_rank": r["fts_rank"],
+                    "fts_score": r["fts_score"],
+                    "vec_rank": r["vec_rank"],
+                    "vec_distance": r["vec_distance"],
+                },
                 "chunk": {
                     "chunk_id": r["chunk_id"],
                     "version_id": r["version_id"],
@@ -64,6 +70,8 @@ def build_output(
         )
 
     return {
+        "schema_version": 1,
+        "run_type": "query_rag",
         "query": question,
         "filters": {
             "version_id": version_id,
@@ -71,6 +79,15 @@ def build_output(
             "embedding_model_id": embedding_model_id,
         },
         "params": {
+            "n1_fts": n1_fts,
+            "n2_vec": n2_vec,
+            "rrf_k": rrf_k,
+            "top_k": top_k,
+        },
+        "retrieval": {
+            "version_id": version_id,
+            "pipeline_version": pipeline_version,
+            "embedding_model_id": embedding_model_id,
             "n1_fts": n1_fts,
             "n2_vec": n2_vec,
             "rrf_k": rrf_k,
@@ -94,9 +111,9 @@ def main() -> None:
     ap.add_argument(
         "--n2-vec",
         type=int,
-        default=0,
-        help="Número de candidatos da busca vetorial (0 desativa). Default=0 (útil enquanto embeddings são placeholder).",
-    )
+        default=settings.RETRIEVAL_N2,
+        help="Número de candidatos da busca vetorial (0 desativa). Default: settings.RETRIEVAL_N2 (híbrido ligado).",
+     )
     ap.add_argument("--rrf-k", type=int, default=settings.RRF_K)
     ap.add_argument("--top-k", type=int, default=settings.TOP_K_DEFAULT)
 
@@ -110,7 +127,7 @@ def main() -> None:
     # Aviso operacional: não tenta "detectar fake", só alerta o operador.
     if getattr(args, "n2_vec", 0) > 0:
         print(
-            f"[info] n2-vec > 0: busca vetorial habilitada (embedding_model_id={EMBEDDING_MODEL_ID}).",
+            f"[info] n2-vec > 0: busca vetorial habilitada (embedding_model_id={args.embedding_model_id}).",
             file=sys.stderr,
         )
 
@@ -168,9 +185,9 @@ def main() -> None:
         run_id=run_id,
         question=out["query"],
         filters=out["filters"],
-        retrieval_params=out["params"],
-        embedding_model_id=out["filters"]["embedding_model_id"],
-        pipeline_version=out["filters"]["pipeline_version"],
+        retrieval_params=out["retrieval"],
+        embedding_model_id=out["retrieval"]["embedding_model_id"],
+        pipeline_version=out["retrieval"]["pipeline_version"],
         selected=selected,
         result_json=out,
         insufficient_evidence=(len(out["results"]) == 0),
