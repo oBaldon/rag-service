@@ -35,7 +35,7 @@ _art_re = re.compile(rf"^(?:Art\.|ART\.)\s*(\d+)\s*([{_ORDINAL_SYMS}])?\s*\.?\s*
 _cap_re = re.compile(r"^CAP[ÍI]TULO\s+([IVXLC\d]+)\b", re.IGNORECASE)
 _sec_re = re.compile(r"^Se[cç]ão\s+([IVXLC\d]+)\b", re.IGNORECASE)
 _subsec_re = re.compile(r"^Subse[cç]ão\s+([IVXLC\d]+)\b", re.IGNORECASE)
-_anexo_re = re.compile(r"^ANEXO(\s+[IVXLC\d]+)?\b", re.IGNORECASE)
+_anexo_re = re.compile(r"^ANEXO(?:\s+[IVXLC\d]+)?(?:\s*[-–—:]\s*.*)?$", re.IGNORECASE)
 
 _SKIP_LINE_RE = re.compile(
     r"^Este texto n[aã]o substitui a Publica[cç][aã]o Oficial\.?$", re.IGNORECASE

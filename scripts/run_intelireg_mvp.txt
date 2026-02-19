@@ -332,6 +332,32 @@ SELECT
   (SELECT COUNT(*) FROM chunk_embeddings) AS embeddings;
 "
 
+psql "$DATABASE_URL" -P pager=off -c "
+SELECT
+  v.version_id,
+  d.title,
+  v.captured_at,
+  COUNT(n.*) AS total_nodes,
+  COUNT(*) FILTER (WHERE n.heading_text ~* '^(Art\.|ART\.)') AS arts_total,
+  COUNT(DISTINCT n.heading_text) FILTER (WHERE n.heading_text ~* '^(Art\.|ART\.)') AS arts_distinct,
+  (
+    SELECT array_agg(x.heading_text ORDER BY x.art_num, x.heading_text)
+    FROM (
+      SELECT DISTINCT
+        n2.heading_text,
+        NULLIF(regexp_replace(n2.heading_text, E'\\\\D', '', 'g'), '')::int AS art_num
+      FROM nodes n2
+      WHERE n2.version_id = v.version_id
+        AND n2.heading_text ~* '^(Art\.|ART\.)'
+    ) x
+  ) AS quais
+FROM document_versions v
+JOIN documents d ON d.document_id = v.document_id
+LEFT JOIN nodes n ON n.version_id = v.version_id
+GROUP BY v.version_id, d.title, v.captured_at
+ORDER BY v.captured_at DESC;
+"
+
 echo "DONE ✅"
 
 ###############################################################################
