@@ -59,6 +59,14 @@ _STRUCT_IN_LINE_RES = (
     _SUBSEC_IN_LINE_RE,
     _ANEXO_IN_LINE_RE,
 )
+_STRUCT_STARTS = (
+    "CAPÍTULO", "CAPITULO",
+    "SEÇÃO", "SECAO",
+    "SUBSEÇÃO", "SUBSECAO",
+    "ANEXO",
+)
+
+
 
 def normalize_text(s: str) -> str:
     s = unicodedata.normalize("NFKC", s or "")
@@ -289,6 +297,8 @@ def extract_nodes_datalegis(
     # 1=CAP/ANEXO, 2=título centrado (DISPOSIÇÕES...), 3=Seção, 4=Subseção/itens centrados, 5=Artigo
     stack: List[tuple[int, str, str]] = []  # (level, segment, label)
     nodes: List[NodeDraft] = []
+    # evita colisão de paths de headings e permite detectar restart/HTML duplicado
+    seen_heading_paths: set[str] = set()
 
     def iter_block_lines(el: Tag) -> List[str]:
         """
@@ -376,6 +386,14 @@ def extract_nodes_datalegis(
                 if not allow and (_cap_re.match(prefix) or _sec_re.match(prefix) or _subsec_re.match(prefix) or _anexo_re.match(prefix)):
                     allow = True
 
+                # (d) reforço: se o "rest" começa com heading estrutural,
+                # permite split mesmo sem pontuação no prefixo (Datalegis cola heading no texto).
+                if not allow:
+                    ru = rest.upper()
+                    if ru.startswith(_STRUCT_STARTS):
+                        allow = True
+
+
                 if not allow:
                     parts.append(cur.strip())
                     break
@@ -451,16 +469,42 @@ def extract_nodes_datalegis(
             return None
         return "/".join(seg for _, seg, _ in stack)
 
-    def push_heading(level: int, label: str) -> NodeDraft:
-        nonlocal stack
-        seg = f"l{level}-{slugify(label, max_len=80)}"
+    def _is_struct_heading(label: str) -> bool:
+        t = normalize_text(label)
+        return bool(_cap_re.match(t) or _sec_re.match(t) or _subsec_re.match(t) or _anexo_re.match(t))
+
+    def push_heading(level: int, label: str) -> Optional[NodeDraft]:
+        nonlocal stack, ignore_rest, in_preamble
+        seg_base = f"l{level}-{slugify(label, max_len=80)}"
 
         while stack and stack[-1][0] >= level:
             stack.pop()
 
         parent_path = "/".join(seg for _, seg, _ in stack) if stack else None
+        base = (parent_path + "/") if parent_path else ""
+
+        # Resolve colisões (labels/truncamento) e detecta restart/duplicação do HTML:
+        seg = seg_base
+        path = base + seg
+
+        if path in seen_heading_paths:
+            # Heading estrutural repetida no mesmo nível/pai fora do preâmbulo => forte sinal de restart.
+            if _is_struct_heading(label) and not in_preamble:
+                flush_article()
+                flush_annex()
+                flush_orphans()
+                ignore_rest = True
+                return None
+
+            # Heading "genérica" repetida (ou colisão por truncamento): desambigua com sufixo.
+            k = 2
+            while (base + f"{seg_base}-{k}") in seen_heading_paths:
+                k += 1
+            seg = f"{seg_base}-{k}"
+            path = base + seg
+
         stack.append((level, seg, label))
-        path = "/".join(seg for _, seg, _ in stack)
+        seen_heading_paths.add(path)
 
         return NodeDraft(
             heading_level=level,
@@ -484,8 +528,24 @@ def extract_nodes_datalegis(
     art_parent: Optional[str] = None
     art_parts: List[str] = []
     
-    # Dedup de artigos: (art_num, text_hash) -> index em nodes
-    seen_articles: dict[tuple[str, str], int] = {}
+    # Dedup de artigos: art_num -> index em nodes
+    # (dedup por hash falha quando o HTML vem "sujo" com headings coladas no texto)
+    seen_articles: dict[str, int] = {}
+    _TAIL_STRUCT_RE = re.compile(r"\b(CAP[ÍI]TULO|Se[cç]ão|Subse[cç]ão|ANEXO)\b", re.IGNORECASE)
+
+    def _article_score(path: str, txt: str) -> tuple[int, int, int]:
+        """
+        Maior é melhor:
+        - prefere path mais profundo (estrutura mais correta)
+        - penaliza se o FINAL do texto parece ter heading estrutural colada
+        - prefere texto mais longo (menos truncado)
+        """
+        depth = (path or "").count("/")
+        t = txt or ""
+        last_line = t.splitlines()[-1] if t else ""
+        tail = normalize_text(last_line)[-220:]
+        bad_tail = 1 if _TAIL_STRUCT_RE.search(tail) else 0
+        return (depth, -bad_tail, len(t))
 
 
     # anexo em construção (conteúdo do anexo)
@@ -585,9 +645,8 @@ def extract_nodes_datalegis(
             return
 
         txt = normalize_text_keep_newlines("\n".join(art_parts))
-        # chave de duplicidade: mesmo Art. + mesmo conteúdo => escolher o path mais longo
-        txt_hash = sha256_hex(normalize_for_hash(txt))
-        key = (art_num_current, txt_hash)
+        # chave de duplicidade: mesmo número de Art. => escolher a melhor versão
+        key = art_num_current
 
         new_node = NodeDraft(
             heading_level=5,
@@ -600,12 +659,9 @@ def extract_nodes_datalegis(
         if key in seen_articles:
             idx = seen_articles[key]
             old = nodes[idx]
-            # mantém o "path longo" (mais profundo)
-            old_depth = old.path.count("/") if old.path else 0
-            new_depth = new_node.path.count("/") if new_node.path else 0
-            if new_depth > old_depth:
+            if _article_score(new_node.path, new_node.text_normalized) > _article_score(old.path, old.text_normalized):
                 nodes[idx] = new_node
-            # se new_depth <= old_depth: descarta o novo (fica o longo/antigo)
+
         else:
             seen_articles[key] = len(nodes)
             nodes.append(new_node)
@@ -675,8 +731,10 @@ def extract_nodes_datalegis(
 
         stack.clear()
         hnode = push_heading(1, label)
+        if hnode is None:
+            return
         nodes.append(hnode)
-
+        
         annex_heading = label
         annex_parent = hnode.parent_path
         annex_path = hnode.path + "/conteudo"
@@ -765,18 +823,24 @@ def extract_nodes_datalegis(
             if is_cap:
                 flush_article()
                 hnode = push_heading(1, t)
+                if hnode is None:
+                    break
                 nodes.append(hnode)
                 continue
 
             if is_sec:
                 flush_article()
                 hnode = push_heading(3, t)
+                if hnode is None:
+                    break
                 nodes.append(hnode)
                 continue
 
             if is_subsec:
                 flush_article()
                 hnode = push_heading(4, t)
+                if hnode is None:
+                    break
                 nodes.append(hnode)
                 continue
 
@@ -797,6 +861,8 @@ def extract_nodes_datalegis(
             last_level = stack[-1][0] if stack else 0
             lvl = 2 if last_level <= 1 else 4
             hnode = push_heading(lvl, t)
+            if hnode is None:
+                break
             nodes.append(hnode)
             continue
 
@@ -839,18 +905,24 @@ def extract_nodes_datalegis(
             if is_cap:
                 flush_article()
                 hnode = push_heading(1, t)
+                if hnode is None:
+                    break
                 nodes.append(hnode)
                 continue
 
             if is_sec:
                 flush_article()
                 hnode = push_heading(3, t)
+                if hnode is None:
+                    break
                 nodes.append(hnode)
                 continue
 
             if is_subsec:
                 flush_article()
                 hnode = push_heading(4, t)
+                if hnode is None:
+                    break
                 nodes.append(hnode)
                 continue
 
