@@ -57,6 +57,31 @@ python -m intelireg.cli.query_rag \
 LATEST="$(ls -t storage/runs/*_query.json | head -n 1)"
 echo "[run] $LATEST"
 
+# =========================================================
+# Validação do contrato (schema v1) — mensagem amigável
+# =========================================================
+if command -v jq >/dev/null; then
+  if ! jq -e '
+    .schema_version == 1
+    and .run_type == "query_rag"
+    and (.retrieval | has("pipeline_version") and has("embedding_model_id") and has("n1_fts") and has("n2_vec") and has("rrf_k") and has("top_k"))
+    and (.results | type=="array")
+    and ((.retrieval.top_k | tonumber) == (.results | length))
+    and (all(.results[]; has("rank") and has("scores") and has("chunk") and has("document") and has("citations")))
+    and (all(.results[]; .scores | has("rrf_score") and has("fts_rank") and has("vec_rank")))
+    and (all(.results[]; .chunk | has("chunk_id") and has("version_id") and has("chunk_index") and has("tokens_count") and has("text")))
+  ' "$LATEST" >/dev/null; then
+    echo "ERRO: o JSON gerado não está conforme o contrato schema v1." >&2
+    echo "Arquivo: $LATEST" >&2
+    echo "Referência: docs/schema_query_v1.md" >&2
+    echo "Dica: rode o jq abaixo para inspecionar o cabeçalho:" >&2
+    echo "  jq -r '{schema_version, run_type, retrieval, results_len:(.results|length)}' \"$LATEST\"" >&2
+    exit 1
+  fi
+else
+  echo "[warn] jq não encontrado; pulando validação automática do schema v1." >&2
+fi
+
 # Mostrar cabeçalho do contrato v1 (rápido, útil em produção)
 command -v jq >/dev/null && jq -r '{schema_version, run_type, retrieval, results_len:(.results|length)}' "$LATEST" || true
 
