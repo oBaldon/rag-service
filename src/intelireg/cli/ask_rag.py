@@ -6,12 +6,10 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from intelireg import settings
-from intelireg.answer import extractive_answer
-from intelireg.retrieval import hybrid_retrieve_rrf
-from intelireg.rag_runs import insert_rag_run
+from intelireg.app.ask import run_ask
 
 
 def ensure_runs_dir() -> Path:
@@ -48,71 +46,17 @@ def main() -> None:
             file=sys.stderr,
         )
 
-    rows = hybrid_retrieve_rrf(
+    run_json = run_ask(
         question=args.question,
+        version_id=args.version_id,
         pipeline_version=args.pipeline_version,
         embedding_model_id=args.embedding_model_id,
         n1_fts=args.n1_fts,
         n2_vec=args.n2_vec,
         rrf_k=args.rrf_k,
         top_k=args.top_k,
-        version_id=args.version_id,
+        audit=True,
     )
-
-    # monta “sources” S1..Sn
-    sources = []
-    for i, r in enumerate(rows, start=1):
-        sid = f"S{i}"
-        doc = r["document"]
-        sources.append(
-            {
-                "source_id": sid,
-                "document": {
-                    "title": doc["title"],
-                    "source_org": doc["source_org"],
-                    "doc_type": doc["doc_type"],
-                    "final_url": doc["final_url"],
-                    "captured_at": doc["captured_at"],
-                },
-                "chunk": {
-                    "chunk_id": r["chunk_id"],
-                    "version_id": r["version_id"],
-                    "chunk_index": r["chunk_index"],
-                    "tokens_count": r["tokens_count"],
-                },
-                "citations": r.get("node_refs") or [],
-                "text": r.get("text") or "",
-                "rrf_score": r.get("rrf_score"),
-                "fts_rank": r.get("fts_rank"),
-                "fts_score": r.get("fts_score"),
-                "vec_rank": r.get("vec_rank"),
-                "vec_distance": r.get("vec_distance"),
-            }
-        )
-
-    answer, cited = extractive_answer(args.question, sources)
-
-    out: Dict[str, Any] = {
-        "query": args.question,
-        "filters": {
-            "version_id": args.version_id,
-            "pipeline_version": args.pipeline_version,
-            "embedding_model_id": args.embedding_model_id,
-        },
-        "params": {
-            "n1_fts": args.n1_fts,
-            "n2_vec": args.n2_vec,
-            "rrf_k": args.rrf_k,
-            "top_k": args.top_k,
-        },
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "answer": {
-            "text": answer,
-            "cited_sources": cited,
-            "mode": "extractive",
-        },
-        "sources": sources,
-    }
 
     runs_dir = ensure_runs_dir()
     if args.out:
@@ -123,21 +67,7 @@ def main() -> None:
         out_path = runs_dir / f"{day}_{rid}_ask.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    out_path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
-    
-    # Micropasso Etapa 6: persiste também no Postgres (rag_runs) com o MESMO JSON
-    run_id = insert_rag_run(out)
-    if run_id:
-        print(f"[db] rag_runs.run_id={run_id}", file=sys.stderr)
-
-    # imprime resposta no terminal também
-    print(answer)
-    if cited:
-        print("\nCitações:", ", ".join(cited))
-        for s in sources:
-            if s["source_id"] in cited:
-                print(f"- {s['source_id']}: {s['document']['title']} ({s['document']['final_url']})")
-
+    out_path.write_text(json.dumps(run_json, ensure_ascii=False, indent=2), encoding="utf-8")
     print(str(out_path))
 
 

@@ -22,7 +22,7 @@ Este projeto depende de alguns componentes do sistema além do `pip install -r r
 O schema usa:
 - `pgcrypto` (para `gen_random_uuid()`)
 - `unaccent` (para busca textual / normalização)
-- `vector` (pgvector) para embeddings (`VECTOR(1536)`)
+- `vector` (pgvector) para embeddings (`VECTOR(384)` no MVP atual)
 
 > Observação importante: `vector` (pgvector) frequentemente exige **superuser** para `CREATE EXTENSION`.
 > O bootstrap já tenta e, se não conseguir, imprime o comando para rodar uma vez como superuser.
@@ -72,7 +72,18 @@ O `requirements.txt` atual inclui:
 - `httpx`
 - `beautifulsoup4`
 - `psycopg[binary]`
-- `python-dotenv`
+- `sentence-transformers`
+- `fastapi`
+- `uvicorn[standard]`
+- **torch (PyTorch)**
+
+### PyTorch (torch) – observação importante
+O módulo de embeddings usa `sentence-transformers`, que depende de **PyTorch** para inferência.
+
+- Em servidores **sem GPU** ou com driver CUDA incompatível, recomenda-se instalar a variante **CPU-only** do PyTorch.
+- Caso contrário, é comum aparecer warning de inicialização CUDA (não impede funcionamento em CPU, mas polui logs).
+
+> Em geral, manter o `torch` dentro do **venv** é o recomendado para reprodutibilidade.
 
 ## 6) Variáveis de ambiente
 
@@ -81,8 +92,13 @@ Obrigatória:
   - Exemplo:
     - `postgresql://intelireg:intelireg@localhost:5555/intelireg`
 
-Opcionais (dependendo do que você habilitar no futuro):
-- credenciais/chaves de LLM/embeddings, caso você substitua o embedding fake por provedor real.
+Para a API interna:
+- `RAG_API_KEY` (chave de serviço-a-serviço para chamadas internas)
+
+Recomendadas (para reduzir warnings e estabilizar downloads):
+- `HF_TOKEN` (Hugging Face token de leitura) para evitar rate limit e warning de acesso não autenticado
+- `CUDA_VISIBLE_DEVICES=` (vazio) para forçar CPU
+- `TOKENIZERS_PARALLELISM=false` para reduzir ruído em logs
 
 ## 7) Bootstrap do banco
 
@@ -106,6 +122,11 @@ Você rodou `psql` sem `DATABASE_URL` (o `psql` tenta usar o usuário do sistema
 ### “permission denied to create extension vector”
 Normal: pgvector costuma exigir superuser.
 - Solução: criar `vector` uma vez como superuser e seguir.
+
+### Warning do CUDA driver (servidor sem driver compatível)
+Se aparecer algo como “CUDA initialization: The NVIDIA driver on your system is too old”:
+- Solução recomendada: instalar **PyTorch CPU-only** no venv.
+- Alternativamente: manter `CUDA_VISIBLE_DEVICES=` e seguir (o warning não impede execução em CPU).
 
 ### Índice HNSW não disponível
 Se seu pgvector for antigo, `USING hnsw` pode não existir.
