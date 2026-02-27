@@ -7,17 +7,12 @@ import json
 import os
 import re
 import time
-from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 from intelireg import settings
 from intelireg.db import get_conn
 from intelireg.jobs import fetch_next_job, mark_done, mark_failed
-
-try:
-    from sentence_transformers import SentenceTransformer
-except Exception:  # pragma: no cover
-    SentenceTransformer = None
+from intelireg.embeddings import embed_pgvector_literals
 
 # -------------------- hashing/normalização --------------------
 
@@ -33,42 +28,6 @@ def sha256_hex(s: str) -> str:
 def chunk_hash(pipeline_version: str, chunk_text: str) -> str:
     # IMPORTANTE: não incluir chunk_index (senão texto igual vira hash diferente)
     return sha256_hex(pipeline_version + "|" + normalize_for_hash(chunk_text))
-
-
-# -------------------- embedding placeholder --------------------
-
-class EmbeddingProviderError(RuntimeError):
-    pass
-
-
-@lru_cache(maxsize=2)
-def _get_st_model(model_name: str):
-    if SentenceTransformer is None:
-        raise EmbeddingProviderError(
-            "sentence-transformers não está instalado. Instale com: pip install sentence-transformers"
-        )
-    # CPU por padrão (MVP). Se quiser GPU depois: device="cuda"
-    return SentenceTransformer(model_name, device="cpu")
-
-
-def _to_pgvector_literal(vec) -> str:
-    # vec pode ser np.ndarray
-    if hasattr(vec, "tolist"):
-        vec = vec.tolist()
-    return "[" + ",".join(f"{float(x):.6f}" for x in vec) + "]"
-
-
-def embed_passages_pgvector(texts: List[str], embedding_model_id: str, batch_size: int = 32) -> List[str]:
-    """
-    Gera embeddings reais para chunks e retorna no formato pgvector.
-    Para E5: usar prefixo 'passage: ' e normalizar.
-    """
-    model_name = embedding_model_id.split("@", 1)[0].strip()
-    model = _get_st_model(model_name)
-
-    prefixed = ["passage: " + (t or "") for t in texts]
-    vecs = model.encode(prefixed, normalize_embeddings=True, batch_size=batch_size, show_progress_bar=False)
-    return [_to_pgvector_literal(v) for v in vecs]
 
 
 # -------------------- DB --------------------
@@ -358,7 +317,6 @@ def build_chunks_from_nodes(
 
         tokens_count = len(chunk_text.split())  # proxy simples
 
-        # node_refs com offsets determinísticos (sem find)
         node_refs = []
         cursor = 0
         for i, u in enumerate(current_units):
@@ -512,7 +470,12 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
             )
             
             # embeddings em batch (melhor que 1 por 1)
-            chunk_vecs = embed_passages_pgvector([c["text"] for c in chunks], embedding_model_id=embedding_model_id)
+            chunk_vecs = embed_pgvector_literals(
+                [c["text"] for c in chunks],
+                embedding_model_id=embedding_model_id,
+                role="passage",
+                batch_size=32,
+            )
 
             # insere chunks + embeddings
             created = 0
@@ -544,7 +507,6 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                 chunk_id = row[0]
                 created += 1
 
-                # embedding placeholder determinístico (substituir depois por embeddings reais)
                 vec = chunk_vecs[i]
                 cur.execute(
                     """

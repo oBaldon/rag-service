@@ -3,12 +3,10 @@ from __future__ import annotations
 import hashlib
 import re
 from typing import Any, Dict, List, Optional
-from functools import lru_cache
-import os
-import importlib
 
 from intelireg.db import get_conn
 import intelireg.settings as settings
+from intelireg.embeddings import embed_query_pgvector
 
 _TOKEN_RE = re.compile(r"[a-zA-ZÀ-ÿ0-9]+", re.UNICODE)
 
@@ -18,46 +16,6 @@ def normalize_for_hash(s: str) -> str:
 
 def sha256_hex(s: str) -> str:
     return hashlib.sha256(s.encode("utf-8")).hexdigest()
-
-
-# -------------------- embeddings reais (local) --------------------
-
-class EmbeddingProviderError(RuntimeError):
-    pass
-
-
-@lru_cache(maxsize=2)
-def _get_st_model(model_name: str):
-    # evita torch tentar inicializar CUDA (e spammar warning)
-    os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
-    try:
-        SentenceTransformer = importlib.import_module("sentence_transformers").SentenceTransformer
-    except Exception as e:
-        raise EmbeddingProviderError(
-            "sentence-transformers não está instalado. Instale com: pip install sentence-transformers"
-        ) from e
-    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-    return SentenceTransformer(
-        model_name,
-        device="cpu",
-        cache_folder=getattr(settings, "HF_CACHE_DIR", None),
-    )
-
-def _to_pgvector_literal(vec) -> str:
-    if hasattr(vec, "tolist"):
-        vec = vec.tolist()
-    return "[" + ",".join(f"{float(x):.6f}" for x in vec) + "]"
-
-
-def embed_query_pgvector(question: str, embedding_model_id: str) -> str:
-    """
-    Embedding real da query (E5): prefixo 'query: ' + normalize_embeddings=True.
-    Retorna literal aceito pelo pgvector.
-    """
-    model_name = embedding_model_id.split("@", 1)[0].strip()
-    model = _get_st_model(model_name)
-    vec = model.encode(["query: " + (question or "")], normalize_embeddings=True, show_progress_bar=False)[0]
-    return _to_pgvector_literal(vec)
 
 
 _FTS_STOPWORDS = {
