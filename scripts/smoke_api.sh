@@ -5,7 +5,7 @@ source .env
 set +a
 
 BASE_URL="http://127.0.0.1:8088"
-API_KEY="${RAG_API_KEY:-uma_chave_interna}"
+API_KEY="${RAG_API_KEY:-'uma_chave_interna'}"
 
 # Opcional: coloque um version_id real para testes de escopo
 VERSION_ID=""   # ex: "121bd227-6089-464b-b79d-6898245d9b60"
