@@ -23,7 +23,7 @@ A API pode exigir o header `x-api-key`.
 * Se o servidor **tiver** `RAG_API_KEY` configurada, você **deve** enviar:
 
 ```http
-x-api-key: SEU_TOKEN_AQUI
+x-api-key: uma_chave_interna
 ```
 
 > Em produção interna, recomenda-se **sempre** habilitar `RAG_API_KEY` e manter a API bindada apenas em `127.0.0.1`.
@@ -125,7 +125,7 @@ Resposta típica:
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "Quais são os requisitos para alteração pós-registro?"
   }'
@@ -142,7 +142,7 @@ Quando usar:
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "Quais documentos costumam ser exigidos para AFE?",
     "n1_fts": 40,
@@ -159,7 +159,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "O que diz o Art. 5º sobre prazos?",
     "version_id": "b7c4c8f2-1c2a-4c67-9db8-6fbcaa0d3a2a",
@@ -174,7 +174,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -H "X-Request-Id: req-20260302-0001" \
   -d '{
     "question": "Qual a definição de insumo farmacêutico ativo?",
@@ -191,7 +191,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "Quais documentos costumam ser exigidos para AFE?",
     "n1_fts": 80,
@@ -205,7 +205,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "Quais documentos costumam ser exigidos para AFE?",
     "n1_fts": 0,
@@ -219,7 +219,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ```bash
 curl -i -X POST http://127.0.0.1:8088/v1/rag/query \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "teste",
     "n1_fts": 0,
@@ -237,7 +237,7 @@ curl -i -X POST http://127.0.0.1:8088/v1/rag/query \
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/ask \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "Resuma os principais pontos sobre CBPF."
   }'
@@ -291,7 +291,7 @@ Exemplo de forma (simplificado):
 ```bash
 curl -s -X POST http://127.0.0.1:8088/v1/rag/ask \
   -H "Content-Type: application/json" \
-  -H "x-api-key: SEU_TOKEN_AQUI" \
+  -H "x-api-key: uma_chave_interna" \
   -d '{
     "question": "Liste exigências comuns em alteração pós-registro e aponte os trechos fonte.",
     "n1_fts": 60,
