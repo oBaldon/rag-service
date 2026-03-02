@@ -20,6 +20,27 @@ set -a
 source .env
 set +a
 
+# =========================================================
+# Schema do app (Opção A): sempre trabalhar no schema dedicado
+# =========================================================
+PG_SCHEMA="${PG_SCHEMA:-intelireg}"
+PSQL_SEARCH_PATH="${PG_SCHEMA},public"
+
+psql_app() {
+  # garante search_path na mesma sessão do comando
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off \
+    -c "SET search_path TO ${PSQL_SEARCH_PATH};" "$@"
+}
+
+# psql "scalar" (retorna 1 valor; NÃO imprime o 'SET' nem formatações)
+# Uso: psql_scalar "SELECT count(*) FROM jobs WHERE status='queued';"
+psql_scalar() {
+  # -q  : quiet (suprime status do comando, incluindo "SET")
+  # -tA : tuples-only + unaligned (imprime só o valor)
+  psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 \
+    -c "SET search_path TO ${PSQL_SEARCH_PATH}; $1"
+}
+
 # Checagens rápidas de ambiente
 echo "[env] DATABASE_URL=$DATABASE_URL"
 echo "[env] PG_SUPERUSER_URL=$PG_SUPERUSER_URL"
@@ -37,7 +58,7 @@ if [ "$DO_RESET" = "1" ]; then
   ./scripts/reset_db.sh --yes
 
   # (opcional) checar se extensões estão presentes
-  psql "$DATABASE_URL" -P pager=off -c "
+  psql_app -c "
   SELECT extname, extversion
   FROM pg_extension
   WHERE extname IN ('pgcrypto','unaccent','vector')
@@ -45,7 +66,7 @@ if [ "$DO_RESET" = "1" ]; then
   "
 
   # (opcional) checar se tabelas nasceram
-  psql "$DATABASE_URL" -P pager=off -c "\dt"
+  psql_app -c "\dt ${PG_SCHEMA}.*"
 else
   echo "[1] DO_RESET=0 (pulando reset_db.sh)"
 fi
@@ -72,7 +93,7 @@ if ! psql "$DATABASE_URL" -X -P pager=off -qtAc "SELECT 1 FROM pg_extension WHER
 fi
 
 # Rechecar extensões
-psql "$DATABASE_URL" -P pager=off -c "
+psql_app -c "
 SELECT extname, extversion
 FROM pg_extension
 WHERE extname IN ('pgcrypto','unaccent','vector')
@@ -169,10 +190,10 @@ if [ "$DO_INGEST" = "1" ]; then
     $INGEST_CMD --url "$url" --source-org ANVISA --doc-type rdc $REINDEX_FLAG
   done
 
-  psql "$DATABASE_URL" -P pager=off -c "SELECT count(*) AS documents FROM documents;"
-  psql "$DATABASE_URL" -P pager=off -c "SELECT count(*) AS versions FROM document_versions;"
-  psql "$DATABASE_URL" -P pager=off -c "SELECT count(*) AS nodes FROM nodes;"
-  psql "$DATABASE_URL" -P pager=off -c "SELECT job_id, type, status, attempts, run_after FROM jobs ORDER BY job_id DESC LIMIT 10;"
+  psql_app -c "SELECT count(*) AS documents FROM documents;"
+  psql_app -c "SELECT count(*) AS versions FROM document_versions;"
+  psql_app -c "SELECT count(*) AS nodes FROM nodes;"
+  psql_app -c "SELECT job_id, type, status, attempts, run_after FROM jobs ORDER BY job_id DESC LIMIT 10;"
 else
   echo "[4] DO_INGEST=0 (pulando ingest)"
 fi
@@ -187,7 +208,7 @@ if [ "$DO_INDEX" = "1" ]; then
   echo "========================================================="
 
   while true; do
-    q="$(psql "$DATABASE_URL" -P pager=off -t -c "SELECT count(*) FROM jobs WHERE status='queued';" | tr -d '[:space:]')"
+    q="$(psql_scalar "SELECT count(*) FROM jobs WHERE status='queued';")"
     if [ "${q:-0}" = "0" ]; then
       break
     fi
@@ -195,10 +216,10 @@ if [ "$DO_INDEX" = "1" ]; then
     $WORKER_CMD --once
   done
 
-  psql "$DATABASE_URL" -P pager=off -c "SELECT version_id, status FROM document_versions ORDER BY captured_at DESC;"
-  psql "$DATABASE_URL" -P pager=off -c "SELECT count(*) AS chunks FROM embedding_chunks;"
-  psql "$DATABASE_URL" -P pager=off -c "SELECT count(*) AS embeddings FROM chunk_embeddings;"
-  psql "$DATABASE_URL" -P pager=off -c "SELECT job_id, type, status, attempts, last_error FROM jobs ORDER BY job_id DESC LIMIT 20;"
+  psql_app -c "SELECT version_id, status FROM document_versions ORDER BY captured_at DESC;"
+  psql_app -c "SELECT count(*) AS chunks FROM embedding_chunks;"
+  psql_app -c "SELECT count(*) AS embeddings FROM chunk_embeddings;"
+  psql_app -c "SELECT job_id, type, status, attempts, last_error FROM jobs ORDER BY job_id DESC LIMIT 20;"
 else
   echo "[5] DO_INDEX=0 (pulando index)"
 fi
@@ -210,7 +231,7 @@ echo "========================================================="
 echo "[6] CHECAGENS"
 echo "========================================================="
 
-psql "$DATABASE_URL" -P pager=off -c "
+psql_app -c "
 SELECT chunk_index, tokens_count,
        left(text, 160) || '...' AS preview,
        jsonb_array_length(node_refs) AS refs
@@ -219,14 +240,14 @@ ORDER BY chunk_index
 LIMIT 10;
 "
 
-psql "$DATABASE_URL" -P pager=off -c "
+psql_app -c "
 SELECT chunk_index, tokens_count, length(text) AS chars
 FROM embedding_chunks
 ORDER BY tokens_count DESC
 LIMIT 10;
 "
 
-psql "$DATABASE_URL" -P pager=off -c "
+psql_app -c "
 SELECT d.title, n.heading_text, n.path,
        right(n.text_normalized, 220) AS tail
 FROM nodes n
@@ -238,7 +259,7 @@ ORDER BY d.title, n.heading_text
 LIMIT 80;
 "
 
-psql "$DATABASE_URL" -P pager=off -c "
+psql_app -c "
 SELECT d.title, length(n.text_normalized) AS chars,
        right(n.text_normalized, 260) AS tail
 FROM nodes n
@@ -255,7 +276,7 @@ ORDER BY chars DESC;
 EXPORT_ALL="${EXPORT_ALL:-1}"
 if [ "$EXPORT_ALL" = "1" ]; then
   OUT_NODES="storage/nodes_$(date +%Y%m%d_%H%M%S).jsonl"
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -P pager=off <<SQL > "$OUT_NODES"
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off -c "SET search_path TO ${PSQL_SEARCH_PATH};" <<SQL > "$OUT_NODES"
 COPY (
   SELECT jsonb_build_object(
     'version_id', n.version_id,
@@ -282,7 +303,7 @@ SQL
   echo "OK: ${OUT_NODES}.gz"
 
   OUT_CHUNKS="storage/chunks_$(date +%Y%m%d_%H%M%S).jsonl"
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -P pager=off <<SQL > "$OUT_CHUNKS"
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off -c "SET search_path TO ${PSQL_SEARCH_PATH};" <<SQL > "$OUT_CHUNKS"
 COPY (
   SELECT jsonb_build_object(
     'chunk_id', c.chunk_id,

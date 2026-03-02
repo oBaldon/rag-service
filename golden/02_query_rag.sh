@@ -24,6 +24,23 @@ set -a
 source .env
 set +a
 
+PG_SCHEMA="${PG_SCHEMA:-intelireg}"
+PSQL_SEARCH_PATH="${PG_SCHEMA},public"
+
+psql_app() {
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off \
+    -c "SET search_path TO ${PSQL_SEARCH_PATH};" "$@"
+}
+
+# psql "scalar" (retorna 1 valor; NÃO imprime o 'SET')
+# Uso: psql_scalar "SELECT count(*) FROM embedding_chunks;"
+psql_scalar() {
+  # -q  : quiet (suprime status do comando, incluindo "SET")
+  # -tA : tuples-only + unaligned (imprime só o valor)
+  psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 \
+    -c "SET search_path TO ${PSQL_SEARCH_PATH}; $1"
+}
+
 # Checagens rápidas de ambiente
 echo "[env] DATABASE_URL=$DATABASE_URL"
 echo "[env] PG_SUPERUSER_URL=$PG_SUPERUSER_URL"
@@ -34,8 +51,8 @@ command -v python >/dev/null && python --version
 # =========================================================
 # Pré-checagem: KB precisa estar indexada
 # =========================================================
-CHUNKS="$(psql "$DATABASE_URL" -P pager=off -t -c "SELECT count(*) FROM embedding_chunks;" | tr -d '[:space:]')"
-EMBEDS="$(psql "$DATABASE_URL" -P pager=off -t -c "SELECT count(*) FROM chunk_embeddings;" | tr -d '[:space:]')"
+CHUNKS="$(psql_scalar "SELECT count(*) FROM embedding_chunks;")"
+EMBEDS="$(psql_scalar "SELECT count(*) FROM chunk_embeddings;")"
 
 echo "[kb] chunks=$CHUNKS embeddings=$EMBEDS"
 if [ "${CHUNKS:-0}" = "0" ]; then

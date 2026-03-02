@@ -7,29 +7,32 @@ usage() {
 Bootstrap do banco (migrations + extensões).
 
 Uso:
-  ./scripts/bootstrap_db.sh --db "$DATABASE_URL"
-  ./scripts/bootstrap_db.sh --db "$DATABASE_URL" --superuser-url "postgresql://postgres:...@localhost:5555/intelireg"
+  ./scripts/bootstrap_db.sh --db "$DATABASE_URL" --schema intelireg
+  ./scripts/bootstrap_db.sh --db "$DATABASE_URL" --schema intelireg --superuser-url "postgresql://postgres:...@localhost:5555/intelireg"
 
 Opções:
   --db URL                Connection string (default: $DATABASE_URL)
+  --schema NAME           Schema do app (default: $PG_SCHEMA ou 'intelireg')
   --superuser-url URL     Connection string de superuser (default: $PG_SUPERUSER_URL)
                            Usado só para criar extensões que exigem superuser (ex: pgvector).
   --migrations-dir DIR    Diretório de migrations (default: db/migrations)
   -h, --help              Ajuda
 
 Notas:
-- Este script NÃO derruba schema/tabelas. Para limpar dados use ./scripts/reset_db.sh
-- Se a extensão "vector" não existir e você não tiver superuser, este script vai falhar com instrução clara.
+- Este script NÃO derruba schema/tabelas. Para limpar use ./scripts/reset_db.sh
+- Garanta que suas migrations NÃO hardcodem "public." se você usar schema dedicado.
 EOF
 }
 
 DB_URL="${DATABASE_URL:-}"
 SUPER_URL="${PG_SUPERUSER_URL:-}"
 MIG_DIR="db/migrations"
+SCHEMA="${PG_SCHEMA:-intelireg}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --db) DB_URL="${2:-}"; shift 2 ;;
+    --schema) SCHEMA="${2:-}"; shift 2 ;;
     --superuser-url) SUPER_URL="${2:-}"; shift 2 ;;
     --migrations-dir) MIG_DIR="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -39,6 +42,12 @@ done
 
 if [[ -z "${DB_URL}" ]]; then
   echo "ERRO: informe --db URL ou exporte DATABASE_URL" >&2
+  usage
+  exit 2
+fi
+
+if [[ -z "${SCHEMA}" ]]; then
+  echo "ERRO: informe --schema NAME ou exporte PG_SCHEMA" >&2
   usage
   exit 2
 fi
@@ -67,7 +76,7 @@ REST="${REST#*|}"
 DB_HOST="${REST%%|*}"
 DB_PORT="${REST##*|}"
 
-echo "[bootstrap] conectado em db=${DB_NAME} user=${DB_USER} host=${DB_HOST} port=${DB_PORT}"
+echo "[bootstrap] conectado em db=${DB_NAME} user=${DB_USER} host=${DB_HOST} port=${DB_PORT} schema=${SCHEMA}"
 
 ext_exists() {
   local ext="$1"
@@ -81,9 +90,7 @@ create_ext_as_owner() {
 
 create_ext_as_superuser() {
   local ext="$1"
-  if [[ -z "${SUPER_URL}" ]]; then
-    return 1
-  fi
+  [[ -n "${SUPER_URL}" ]] || return 1
   "${PSQL_SU[@]}" -qtAc "CREATE EXTENSION IF NOT EXISTS ${ext};" >/dev/null
 }
 
@@ -105,7 +112,6 @@ ensure_extension() {
     return 0
   fi
 
-  # fallback para superuser (principalmente para "vector")
   if create_ext_as_superuser "$ext"; then
     echo "[bootstrap] extensão criada via superuser: ${ext}"
     return 0
@@ -125,6 +131,10 @@ ensure_extension "pgcrypto"
 ensure_extension "unaccent"
 ensure_extension "vector"
 
+# garante schema antes das migrations (search_path será setado por sessão ao aplicar cada arquivo)
+echo "[bootstrap] garantindo schema..."
+"${PSQL[@]}" -qtAc "CREATE SCHEMA IF NOT EXISTS ${SCHEMA};" >/dev/null
+
 echo "[bootstrap] aplicando migrations em ${MIG_DIR}..."
 mapfile -t MIGS < <(ls -1 "${MIG_DIR}"/*.sql 2>/dev/null | sort)
 if [[ ${#MIGS[@]} -eq 0 ]]; then
@@ -132,18 +142,22 @@ if [[ ${#MIGS[@]} -eq 0 ]]; then
   exit 2
 fi
 
+# aplica migrations com search_path setado PARA ESTA SESSÃO (mesma conexão do -f)
 for f in "${MIGS[@]}"; do
   echo "[bootstrap] -> $(basename "$f")"
-  "${PSQL[@]}" -f "$f" >/dev/null
+  "${PSQL[@]}" \
+    -v "app_schema=${SCHEMA}" \
+    -c "SET search_path TO ${SCHEMA}, public;" \
+    -f "$f" >/dev/null
 done
 
 echo "[bootstrap] checagens rápidas..."
 
-# 1) nodes.node_index existe e é NOT NULL
+# Ajuste as checagens para apontar para o schema configurado
 "${PSQL[@]}" -qtAc "
   SELECT 1
   FROM information_schema.columns
-  WHERE table_schema='public' AND table_name='nodes'
+  WHERE table_schema='${SCHEMA}' AND table_name='nodes'
     AND column_name='node_index'
     AND is_nullable='NO'
   LIMIT 1;
@@ -152,24 +166,25 @@ echo "[bootstrap] checagens rápidas..."
   exit 4
 }
 
-# 2) constraint uq_embedding_chunks_version_pipeline_hash existe
 "${PSQL[@]}" -qtAc "
   SELECT 1
-  FROM pg_constraint
-  WHERE conrelid='public.embedding_chunks'::regclass
-    AND conname='uq_embedding_chunks_version_pipeline_hash'
-    AND contype='u'
+  FROM pg_constraint c
+  JOIN pg_class t ON t.oid = c.conrelid
+  JOIN pg_namespace n ON n.oid = t.relnamespace
+  WHERE n.nspname='${SCHEMA}'
+    AND t.relname='embedding_chunks'
+    AND c.conname='uq_embedding_chunks_version_pipeline_hash'
+    AND c.contype='u'
   LIMIT 1;
 " | grep -q 1 || {
   echo "ERRO: constraint uq_embedding_chunks_version_pipeline_hash não existe (verifique init do embedding_chunks)" >&2
   exit 4
 }
 
-# 3) chunk_embeddings.embedding é VECTOR(1536)
 "${PSQL[@]}" -qtAc "
   SELECT 1
   FROM information_schema.columns
-  WHERE table_schema='public' AND table_name='chunk_embeddings'
+  WHERE table_schema='${SCHEMA}' AND table_name='chunk_embeddings'
     AND column_name='embedding'
     AND udt_name='vector'
   LIMIT 1;
