@@ -25,6 +25,8 @@ fi
 YES=0
 SUPERUSER_URL="${PG_SUPERUSER_URL:-}"
 SCHEMA="${PG_SCHEMA:-intelireg}"
+EXPECTED_DB="${PG_EXPECTED_DB:-intelireg}"
+ALLOW_ANY_DB="${ALLOW_RESET_ANY_DB:-0}"
 
 usage() {
   cat <<EOF
@@ -35,11 +37,14 @@ Flags:
   --yes                 Pula confirmação interativa.
   --superuser-url <url> URL superuser (ex: postgres) para criar extensões (principalmente vector).
   --schema <schema>     Schema do app a ser resetado (default: intelireg).
+  --allow-any-db        Permite resetar mesmo se o database não for o esperado.
 
 Env:
   DATABASE_URL        Obrigatório.
   PG_SUPERUSER_URL    Opcional (alternativa ao --superuser-url).
   PG_SCHEMA           Opcional (alternativa ao --schema).
+  PG_EXPECTED_DB      Opcional (default: intelireg). Nome do database esperado.
+  ALLOW_RESET_ANY_DB  Opcional (0/1). Override do check do database.
 EOF
 }
 
@@ -60,6 +65,10 @@ while [[ $# -gt 0 ]]; do
       [[ -n "${SCHEMA}" ]] || { echo "Erro: --schema requer um valor."; exit 1; }
       shift 2
       ;;
+    --allow-any-db)
+      ALLOW_ANY_DB=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -76,6 +85,24 @@ done
 if [[ "${SCHEMA}" == "public" ]]; then
   echo "ERRO: por segurança, este script não permite --schema public."
   echo "Use um schema dedicado (ex: intelireg) para evitar conflito com outros apps."
+  exit 1
+fi
+
+# safety check: evita reset em database errado por engano
+DB_ACTUAL="$(psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 -c "SELECT current_database();")"
+USER_ACTUAL="$(psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 -c "SELECT current_user;")"
+HOST_ACTUAL="$(psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 -c "SELECT coalesce(inet_server_addr()::text,'local');")"
+PORT_ACTUAL="$(psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 -c "SELECT inet_server_port();")"
+
+if [[ "${ALLOW_ANY_DB}" != "1" && "${DB_ACTUAL}" != "${EXPECTED_DB}" ]]; then
+  echo "ERRO: safety-check bloqueou o reset."
+  echo "  DATABASE_URL aponta para db='${DB_ACTUAL}' (user='${USER_ACTUAL}' host='${HOST_ACTUAL}' port='${PORT_ACTUAL}')"
+  echo "  Mas o esperado é PG_EXPECTED_DB='${EXPECTED_DB}'."
+  echo
+  echo "Se você REALMENTE quer resetar esse database, rode com:"
+  echo "  ALLOW_RESET_ANY_DB=1 ./scripts/reset_db.sh --yes"
+  echo "ou:"
+  echo "  ./scripts/reset_db.sh --yes --allow-any-db"
   exit 1
 fi
 
