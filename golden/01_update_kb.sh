@@ -275,8 +275,9 @@ ORDER BY chars DESC;
 # =========================================================
 EXPORT_ALL="${EXPORT_ALL:-1}"
 if [ "$EXPORT_ALL" = "1" ]; then
-  OUT_NODES="storage/nodes_$(date +%Y%m%d_%H%M%S).jsonl"
-  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off -c "SET search_path TO ${PSQL_SEARCH_PATH};" <<SQL > "$OUT_NODES"
+OUT_NODES="storage/nodes_$(date +%Y%m%d_%H%M%S).jsonl"
+psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -P pager=off <<SQL > "$OUT_NODES"
+SET search_path TO ${PSQL_SEARCH_PATH};
 COPY (
   SELECT jsonb_build_object(
     'version_id', n.version_id,
@@ -299,11 +300,12 @@ COPY (
   ORDER BY n.version_id, n.node_index
 ) TO STDOUT;
 SQL
-  gzip -9 "$OUT_NODES"
-  echo "OK: ${OUT_NODES}.gz"
+gzip -9 "$OUT_NODES"
+echo "OK: ${OUT_NODES}.gz"
 
-  OUT_CHUNKS="storage/chunks_$(date +%Y%m%d_%H%M%S).jsonl"
-  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -P pager=off -c "SET search_path TO ${PSQL_SEARCH_PATH};" <<SQL > "$OUT_CHUNKS"
+OUT_CHUNKS="storage/chunks_$(date +%Y%m%d_%H%M%S).jsonl"
+psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -P pager=off <<SQL > "$OUT_CHUNKS"
+SET search_path TO ${PSQL_SEARCH_PATH};
 COPY (
   SELECT jsonb_build_object(
     'chunk_id', c.chunk_id,
@@ -320,8 +322,8 @@ COPY (
   ORDER BY c.version_id, c.chunk_index
 ) TO STDOUT;
 SQL
-  gzip -9 "$OUT_CHUNKS"
-  echo "OK: ${OUT_CHUNKS}.gz"
+gzip -9 "$OUT_CHUNKS"
+echo "OK: ${OUT_CHUNKS}.gz"
 fi
 
 echo "DONE ✅ (KB atualizada: reset=$DO_RESET ingest=$DO_INGEST index=$DO_INDEX export=$EXPORT_ALL urls=${#URLS[@]})"
