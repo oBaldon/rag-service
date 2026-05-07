@@ -274,56 +274,93 @@ ORDER BY chars DESC;
 # 7) Export (nodes/chunks) — opcional
 # =========================================================
 EXPORT_ALL="${EXPORT_ALL:-1}"
+EXPORT_VALIDATE="${EXPORT_VALIDATE:-1}"
+
+validate_jsonl_gz() {
+  local gz="$1"
+  python - "$gz" <<'PY'
+import gzip
+import json
+import sys
+
+path = sys.argv[1]
+total = 0
+bad = 0
+errors = []
+
+with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+  for index, line in enumerate(handle, 1):
+    total += 1
+    line = line.rstrip("\n")
+    if not line:
+      continue
+    try:
+      json.loads(line)
+    except Exception as exc:
+      bad += 1
+      if len(errors) < 5:
+        errors.append((index, str(exc), line[:220]))
+
+print(f"[validate] {path}: total_lines={total} invalid_json={bad}")
+for index, message, snippet in errors:
+  print(f"[validate] first_error line={index} err={message} preview={snippet!r}")
+
+sys.exit(0 if bad == 0 else 2)
+PY
+}
+
 if [ "$EXPORT_ALL" = "1" ]; then
 OUT_NODES="storage/nodes_$(date +%Y%m%d_%H%M%S).jsonl"
-psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -P pager=off <<SQL > "$OUT_NODES"
-SET search_path TO ${PSQL_SEARCH_PATH};
-COPY (
-  SELECT jsonb_build_object(
-    'version_id', n.version_id,
-    'document_id', v.document_id,
-    'title', d.title,
-    'source_org', d.source_org,
-    'doc_type', d.doc_type,
-    'node_id', n.node_id,
-    'parent_id', n.parent_id,
-    'node_index', n.node_index,
-    'path', n.path,
-    'heading_level', n.heading_level,
-    'heading_text', n.heading_text,
-    'chars', length(n.text_normalized),
-    'text', replace(n.text_normalized, E'\n', '\\n')
-  )::text
-  FROM nodes n
-  JOIN document_versions v ON v.version_id = n.version_id
-  JOIN documents d ON d.document_id = v.document_id
-  ORDER BY n.version_id, n.node_index
-) TO STDOUT;
-SQL
+# Export robusto (JSONL válido): evitar COPY, que pode corromper escaping do JSON em alguns casos.
+# Usar tabelas schema-qualified para não depender de SET search_path (que pode emitir "SET" no stdout).
+psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 -P pager=off \
+  -c "SELECT jsonb_build_object(
+        'version_id', n.version_id,
+        'document_id', v.document_id,
+        'title', d.title,
+        'source_org', d.source_org,
+        'doc_type', d.doc_type,
+        'node_id', n.node_id,
+        'parent_id', n.parent_id,
+        'node_index', n.node_index,
+        'path', n.path,
+        'heading_level', n.heading_level,
+        'heading_text', n.heading_text,
+        'chars', length(n.text_normalized),
+        'text', n.text_normalized
+      )::text
+      FROM ${PG_SCHEMA}.nodes n
+      JOIN ${PG_SCHEMA}.document_versions v ON v.version_id = n.version_id
+      JOIN ${PG_SCHEMA}.documents d ON d.document_id = v.document_id
+      ORDER BY n.version_id, n.node_index" \
+  > "$OUT_NODES"
 gzip -9 "$OUT_NODES"
 echo "OK: ${OUT_NODES}.gz"
+if [ "$EXPORT_VALIDATE" = "1" ]; then
+  validate_jsonl_gz "${OUT_NODES}.gz"
+fi
 
 OUT_CHUNKS="storage/chunks_$(date +%Y%m%d_%H%M%S).jsonl"
-psql "$DATABASE_URL" -X -q -v ON_ERROR_STOP=1 -P pager=off <<SQL > "$OUT_CHUNKS"
-SET search_path TO ${PSQL_SEARCH_PATH};
-COPY (
-  SELECT jsonb_build_object(
-    'chunk_id', c.chunk_id,
-    'version_id', c.version_id,
-    'pipeline_version', c.pipeline_version,
-    'chunk_index', c.chunk_index,
-    'chunk_hash', c.chunk_hash,
-    'tokens_count', c.tokens_count,
-    'chars', length(c.text),
-    'preview', left(c.text, 220),
-    'node_refs', c.node_refs
-  )::text
-  FROM embedding_chunks c
-  ORDER BY c.version_id, c.chunk_index
-) TO STDOUT;
-SQL
+psql "$DATABASE_URL" -X -qAt -v ON_ERROR_STOP=1 -P pager=off \
+  -c "SELECT jsonb_build_object(
+        'chunk_id', c.chunk_id,
+        'version_id', c.version_id,
+        'pipeline_version', c.pipeline_version,
+        'chunk_index', c.chunk_index,
+        'chunk_hash', c.chunk_hash,
+        'tokens_count', c.tokens_count,
+        'chars', length(c.text),
+        'preview', left(c.text, 220),
+        'node_refs', c.node_refs
+      )::text
+      FROM ${PG_SCHEMA}.embedding_chunks c
+      ORDER BY c.version_id, c.chunk_index" \
+  > "$OUT_CHUNKS"
 gzip -9 "$OUT_CHUNKS"
 echo "OK: ${OUT_CHUNKS}.gz"
+if [ "$EXPORT_VALIDATE" = "1" ]; then
+  validate_jsonl_gz "${OUT_CHUNKS}.gz"
+fi
 fi
 
 echo "DONE ✅ (KB atualizada: reset=$DO_RESET ingest=$DO_INGEST index=$DO_INDEX export=$EXPORT_ALL urls=${#URLS[@]})"
