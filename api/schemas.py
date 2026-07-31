@@ -1,26 +1,164 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from datetime import datetime
+from typing import Any, Dict, Literal, Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from intelireg import settings
 
 
-class QueryRequest(BaseModel):
-    question: str = Field(..., min_length=1)
-    version_id: Optional[str] = None
-    pipeline_version: Optional[str] = None
-    embedding_model_id: Optional[str] = None
-    n1_fts: int = 30
-    n2_vec: int = 30
-    rrf_k: int = 60
-    top_k: int = 5
+class StrictModel(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
 
 
-class AskRequest(BaseModel):
-    question: str = Field(..., min_length=1)
-    version_id: Optional[str] = None
-    pipeline_version: Optional[str] = None
-    embedding_model_id: Optional[str] = None
-    n1_fts: int = 30
-    n2_vec: int = 0
-    rrf_k: int = 60
-    top_k: int = 5
+class RetrievalRequest(StrictModel):
+    question: str = Field(
+        ...,
+        min_length=1,
+        max_length=settings.QUESTION_MAX_LENGTH,
+    )
+    version_id: Optional[UUID] = None
+
+    # Mantidos por compatibilidade da API v1. Quando informados, devem
+    # corresponder exatamente à configuração do servidor.
+    pipeline_version: Optional[str] = Field(default=None, max_length=100)
+    embedding_model_id: Optional[str] = Field(default=None, max_length=255)
+
+    n1_fts: int = Field(default=30, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
+    n2_vec: int = Field(default=30, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
+    rrf_k: int = Field(default=60, ge=1, le=settings.RRF_K_MAX)
+    top_k: int = Field(default=5, ge=1, le=settings.TOP_K_MAX)
+
+
+class QueryRequest(RetrievalRequest):
+    pass
+
+
+class AskRequest(RetrievalRequest):
+    n2_vec: int = Field(default=0, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
+
+
+class RetrievalConfig(StrictModel):
+    version_id: Optional[UUID]
+    pipeline_version: str
+    embedding_model_id: str
+    n1_fts: int
+    n2_vec: int
+    rrf_k: int
+    top_k: int
+
+
+class ScoreBreakdown(StrictModel):
+    rrf_score: float
+    fts_rank: Optional[int]
+    fts_score: Optional[float]
+    vec_rank: Optional[int]
+    vec_distance: Optional[float]
+
+
+class ChunkEvidence(StrictModel):
+    chunk_id: UUID
+    version_id: UUID
+    chunk_index: int
+    tokens_count: int
+    text: str
+
+
+class DocumentMetadata(StrictModel):
+    document_id: UUID
+    title: str
+    source_org: str
+    doc_type: str
+    source_url: str
+    final_url: Optional[str]
+    captured_at: Optional[datetime]
+
+
+class QueryResult(StrictModel):
+    rank: int
+    rrf_score: float
+    fts_rank: Optional[int]
+    fts_score: Optional[float]
+    vec_rank: Optional[int]
+    vec_distance: Optional[float]
+    scores: ScoreBreakdown
+    chunk: ChunkEvidence
+    document: DocumentMetadata
+    citations: list[Any]
+
+
+class QueryResponse(StrictModel):
+    schema_version: Literal[1]
+    run_type: Literal["query_rag"]
+    request_id: str
+    run_id: UUID
+    query: str
+    filters: Dict[str, Any]
+    params: Dict[str, Any]
+    retrieval: RetrievalConfig
+    generated_at: datetime
+    results: list[QueryResult]
+
+
+class AskAnswer(StrictModel):
+    text: str
+    cited_sources: list[str]
+
+
+class AskSource(StrictModel):
+    source_id: str
+    # Alias legado mantido durante a vigência do contrato v1.
+    sid: str
+    chunk_id: UUID
+    version_id: UUID
+    chunk_index: int
+    text: str
+    document: DocumentMetadata
+    citations: list[Any]
+    scores: ScoreBreakdown
+
+
+class AskResponse(StrictModel):
+    schema_version: Literal[1]
+    run_type: Literal["ask_rag"]
+    request_id: str
+    run_id: UUID
+    query: str
+    filters: Dict[str, Any]
+    params: Dict[str, Any]
+    generated_at: datetime
+    answer: AskAnswer
+    sources: list[AskSource]
+
+
+class LiveResponse(StrictModel):
+    status: Literal["ok"]
+    service: Literal["intelireg-rag"]
+    pipeline_version: str
+
+
+class CheckStatus(StrictModel):
+    status: str
+    detail: Optional[str] = None
+
+
+class ReadyResponse(StrictModel):
+    status: Literal["ready", "not_ready"]
+    service: Literal["intelireg-rag"]
+    checks: Dict[str, CheckStatus]
+
+
+class ErrorBody(StrictModel):
+    code: str
+    message: str
+    request_id: str
+    details: Any | None = None
+
+
+class ErrorResponse(StrictModel):
+    error: ErrorBody

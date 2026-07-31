@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 import json
-import uuid
+from uuid import uuid4
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -46,7 +46,11 @@ def main() -> None:
             file=sys.stderr,
         )
 
+    run_id = str(uuid4())
+
     run_json = run_ask(
+        request_id=f"cli-{run_id}",
+        run_id=run_id,
         question=args.question,
         version_id=args.version_id,
         pipeline_version=args.pipeline_version,
@@ -63,8 +67,8 @@ def main() -> None:
         out_path = Path(args.out)
     else:
         day = datetime.now(timezone.utc).strftime("%Y%m%d")
-        rid = uuid.uuid4().hex[:8]
-        out_path = runs_dir / f"{day}_{rid}_ask.json"
+        run_id_short = run_json["run_id"].split("-")[0]
+        out_path = runs_dir / f"{day}_{run_id_short}_ask.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     out_path.write_text(json.dumps(run_json, ensure_ascii=False, indent=2), encoding="utf-8")

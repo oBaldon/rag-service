@@ -10,6 +10,8 @@ from intelireg.retrieval import hybrid_retrieve_rrf
 
 def build_query_output(
     *,
+    request_id: str,
+    run_id: str,
     question: str,
     version_id: Optional[str],
     pipeline_version: str,
@@ -31,37 +33,40 @@ def build_query_output(
     )
 
     results = []
-    for i, r in enumerate(rows, start=1):
+    for i, row in enumerate(rows, start=1):
         results.append(
             {
                 "rank": i,
-                "rrf_score": r["rrf_score"],
-                "fts_rank": r["fts_rank"],
-                "fts_score": r["fts_score"],
-                "vec_rank": r["vec_rank"],
-                "vec_distance": r["vec_distance"],
+                # Campos legados mantidos durante o contrato v1.
+                "rrf_score": row["rrf_score"],
+                "fts_rank": row["fts_rank"],
+                "fts_score": row["fts_score"],
+                "vec_rank": row["vec_rank"],
+                "vec_distance": row["vec_distance"],
                 "scores": {
-                    "rrf_score": r["rrf_score"],
-                    "fts_rank": r["fts_rank"],
-                    "fts_score": r["fts_score"],
-                    "vec_rank": r["vec_rank"],
-                    "vec_distance": r["vec_distance"],
+                    "rrf_score": row["rrf_score"],
+                    "fts_rank": row["fts_rank"],
+                    "fts_score": row["fts_score"],
+                    "vec_rank": row["vec_rank"],
+                    "vec_distance": row["vec_distance"],
                 },
                 "chunk": {
-                    "chunk_id": r["chunk_id"],
-                    "version_id": r["version_id"],
-                    "chunk_index": r["chunk_index"],
-                    "tokens_count": r["tokens_count"],
-                    "text": r["text"],
+                    "chunk_id": row["chunk_id"],
+                    "version_id": row["version_id"],
+                    "chunk_index": row["chunk_index"],
+                    "tokens_count": row["tokens_count"],
+                    "text": row["text"],
                 },
-                "document": r["document"],
-                "citations": r["node_refs"] or [],
+                "document": row["document"],
+                "citations": row["node_refs"] or [],
             }
         )
 
     return {
         "schema_version": 1,
         "run_type": "query_rag",
+        "request_id": request_id,
+        "run_id": run_id,
         "query": question,
         "filters": {
             "version_id": version_id,
@@ -98,9 +103,16 @@ def run_query(
     n2_vec: int,
     rrf_k: int,
     top_k: int,
+    request_id: Optional[str] = None,
+    run_id: Optional[str] = None,
     audit: bool = True,
 ) -> Dict[str, Any]:
+    canonical_request_id = request_id or str(uuid4())
+    canonical_run_id = run_id or str(uuid4())
+
     out = build_query_output(
+        request_id=canonical_request_id,
+        run_id=canonical_run_id,
         question=question,
         version_id=version_id,
         pipeline_version=pipeline_version,
@@ -112,21 +124,20 @@ def run_query(
     )
 
     if audit:
-        run_id = str(uuid4())
-        selected = []
-        for r in out["results"]:
-            selected.append(
-                {
-                    "rank": r["rank"],
-                    "rrf_score": r["rrf_score"],
-                    "chunk_id": r["chunk"]["chunk_id"],
-                    "version_id": r["chunk"]["version_id"],
-                    "chunk_index": r["chunk"]["chunk_index"],
-                }
-            )
+        selected = [
+            {
+                "rank": result["rank"],
+                "rrf_score": result["scores"]["rrf_score"],
+                "chunk_id": result["chunk"]["chunk_id"],
+                "version_id": result["chunk"]["version_id"],
+                "chunk_index": result["chunk"]["chunk_index"],
+            }
+            for result in out["results"]
+        ]
 
         record_query_run(
-            run_id=run_id,
+            request_id=canonical_request_id,
+            run_id=canonical_run_id,
             question=out["query"],
             filters=out["filters"],
             retrieval_params=out["retrieval"],

@@ -7,8 +7,8 @@ set +a
 BASE_URL="http://127.0.0.1:8088"
 API_KEY="${RAG_API_KEY:-'uma_chave_interna'}"
 
-# Opcional: coloque um version_id real para testes de escopo
-VERSION_ID=""   # ex: "121bd227-6089-464b-b79d-6898245d9b60"
+# Opcional: informe externamente um version_id real para testar o escopo.
+VERSION_ID="${VERSION_ID:-}"
 
 Q='Quais são os requisitos para alteração pós-registro?'
 
@@ -16,8 +16,19 @@ outdir="storage/api_test_$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$outdir"
 
 echo "== 0) Health =="
-curl -si "$BASE_URL/health" | tee "$outdir/00_health.headers.txt" >/dev/null
-echo "OK: health"
+curl -si "$BASE_URL/health/live" | tee "$outdir/00_health.headers.txt" >/dev/null
+echo "OK: liveness"
+
+
+echo
+echo "== 0.1) Readiness =="
+curl -si "$BASE_URL/health/ready" | tee "$outdir/00_ready.headers.txt" >/dev/null
+if ! head -n 1 "$outdir/00_ready.headers.txt" | grep -q "200"; then
+  echo "FAIL: expected 200 on readiness"
+  head -n 1 "$outdir/00_ready.headers.txt"
+  exit 1
+fi
+echo "OK: readiness"
 
 echo
 echo "== 1) Auth (deve dar 401 com key errada) =="
@@ -39,6 +50,7 @@ echo "== 2) Query padrão (híbrido) =="
 curl -si -X POST "$BASE_URL/v1/rag/query" \
   -H "Content-Type: application/json" \
   -H "x-api-key: $API_KEY" \
+  -H "X-Request-Id: smoke-api-query-1" \
   -d "{
     \"question\": \"$Q\",
     \"top_k\": 5,
@@ -47,7 +59,17 @@ curl -si -X POST "$BASE_URL/v1/rag/query" \
     \"rrf_k\": 60
   }" \
   | tee "$outdir/02_query_hybrid.headers_and_body.txt" >/dev/null
+
+if ! grep -q '"request_id":"smoke-api-query-1"' "$outdir/02_query_hybrid.headers_and_body.txt"; then
+  echo "FAIL: request_id não foi propagado para o corpo"
+  exit 1
+fi
+if ! grep -Eq '"run_id":"[0-9a-fA-F-]{36}"' "$outdir/02_query_hybrid.headers_and_body.txt"; then
+  echo "FAIL: run_id UUID não encontrado"
+  exit 1
+fi
 echo "OK: hybrid"
+
 
 echo
 echo "== 3) FTS-only (n2_vec=0) =="

@@ -103,7 +103,8 @@ def extractive_answer(question: str, sources: List[Dict[str, Any]]) -> Tuple[str
         if not lines:
             continue
 
-        rrf = float(s.get("rrf_score") or 0.0)
+        scores = s.get("scores") or {}
+        rrf = float(scores.get("rrf_score") or s.get("rrf_score") or 0.0)
 
         for li, ln in enumerate(lines):
             sc = _score_line(ln.casefold(), kws)

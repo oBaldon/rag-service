@@ -193,4 +193,17 @@ echo "[bootstrap] checagens rápidas..."
   exit 4
 }
 
+
+"${PSQL[@]}" -qtAc "
+  SELECT 1
+  FROM information_schema.columns
+  WHERE table_schema='${SCHEMA}' AND table_name='rag_runs'
+    AND column_name='request_id'
+    AND is_nullable='NO'
+  LIMIT 1;
+" | grep -q 1 || {
+  echo "ERRO: rag_runs.request_id não existe ou permite NULL (verifique 0002_api_contract_v1.sql)" >&2
+  exit 4
+}
+
 echo "[bootstrap] OK ✅ banco pronto para uso."

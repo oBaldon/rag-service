@@ -20,6 +20,7 @@ def compute_result_hash(result_json: Dict[str, Any]) -> str:
 
 def record_query_run(
     *,
+    request_id: str,
     run_id: str,
     question: str,
     filters: Dict[str, Any],
@@ -31,10 +32,11 @@ def record_query_run(
     insufficient_evidence: bool,
 ) -> None:
     """
-    Registra a execução do query_rag na tabela rag_runs.
-    Como ainda não há LLM:
-      - llm_model_id = 'none'
-      - answer_text = ''
+    Registra a execução do retrieval na tabela rag_runs.
+
+    O serviço RAG não gera a resposta LLM final:
+    - llm_model_id = 'none'
+    - answer_text = ''
     """
     result_hash = compute_result_hash(result_json)
 
@@ -43,6 +45,7 @@ def record_query_run(
             cur.execute(
                 """
                 INSERT INTO rag_runs (
+                  request_id,
                   run_id,
                   question,
                   filters,
@@ -59,6 +62,7 @@ def record_query_run(
                 VALUES (
                   %s,
                   %s,
+                  %s,
                   %s::jsonb,
                   %s::jsonb,
                   %s,
@@ -72,10 +76,15 @@ def record_query_run(
                 )
                 """,
                 (
+                    request_id,
                     run_id,
                     question,
                     json.dumps(filters, ensure_ascii=False, default=str),
-                    json.dumps(retrieval_params, ensure_ascii=False, default=str),
+                    json.dumps(
+                        retrieval_params,
+                        ensure_ascii=False,
+                        default=str,
+                    ),
                     embedding_model_id,
                     pipeline_version,
                     json.dumps(selected, ensure_ascii=False, default=str),

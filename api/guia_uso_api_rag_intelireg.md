@@ -352,3 +352,22 @@ E, se precisar integrar via client generator:
 * `http://127.0.0.1:8088/openapi.json`
 * `http://127.0.0.1:8088/redoc`
 
+
+
+---
+
+## 12) Consolidação do contrato v1
+
+A partir da consolidação para integração com o Portal:
+
+- `request_id` é devolvido no header e no corpo;
+- `run_id` é devolvido no corpo e corresponde ao registro em `rag_runs`;
+- `version_id` precisa ser UUID válido;
+- os parâmetros de retrieval possuem limites;
+- pipeline e modelo são controlados pelo servidor;
+- erros seguem `{ "error": { "code", "message", "request_id" } }`;
+- `/health/live` verifica o processo;
+- `/health/ready` verifica configuração, PostgreSQL, schema e pgvector;
+- `/ask` publica `source_id` e mantém `sid` como alias legado.
+
+Consulte `docs/api_contract_v1.md` para o contrato canônico.

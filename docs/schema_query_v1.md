@@ -15,6 +15,10 @@ Este schema é **versionado** por `schema_version`. Alterações incompatíveis 
   - Valor fixo nesta versão: `1`.
 - `run_type` (string)  
   - Valor fixo nesta versão: `"query_rag"`.
+- `request_id` (string)
+  - Correlação ponta a ponta, persistida em `rag_runs`.
+- `run_id` (string, UUID)
+  - Identificador canônico da execução, igual ao persistido em `rag_runs`.
 - `query` (string)  
   - Pergunta do usuário.
 - `retrieval` (object)  
@@ -24,9 +28,9 @@ Este schema é **versionado** por `schema_version`. Alterações incompatíveis 
 - `results` (array)  
   - Lista ordenada por rank (ver seção “Results”).
 
-### Campos auditáveis recomendados (presentes no MVP)
-- `run_id` (string, UUID)  
+### Campo local opcional
 - `output_path` (string)
+  - Usado somente pelos CLIs para indicar o arquivo escrito em disco.
 
 ### Campos legados (mantidos por compatibilidade)
 > Estes campos podem existir, mas **não são o contrato canônico**.  
@@ -106,6 +110,8 @@ Ex.: `node_id`, `path`, `heading_text`, offsets/trechos quando disponível.
 {
   "schema_version": 1,
   "run_type": "query_rag",
+  "request_id": "portal-analysis-123",
+  "run_id": "69062489-490e-47bf-abd1-d316e661342b",
   "query": "string",
   "retrieval": {
     "version_id": null,

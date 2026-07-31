@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-import uuid
+from uuid import uuid4
 
 from intelireg.answer import extractive_answer
-from intelireg.retrieval import hybrid_retrieve_rrf
 from intelireg.rag_runs import insert_rag_run
+from intelireg.retrieval import hybrid_retrieve_rrf
 
 
 def run_ask(
@@ -19,8 +19,13 @@ def run_ask(
     n2_vec: int,
     rrf_k: int,
     top_k: int,
+    request_id: Optional[str] = None,
+    run_id: Optional[str] = None,
     audit: bool = True,
 ) -> Dict[str, Any]:
+    canonical_request_id = request_id or str(uuid4())
+    canonical_run_id = run_id or str(uuid4())
+
     rows = hybrid_retrieve_rrf(
         question=question,
         pipeline_version=pipeline_version,
@@ -33,29 +38,29 @@ def run_ask(
     )
 
     sources = []
-    for i, r in enumerate(rows, start=1):
+    for index, row in enumerate(rows, start=1):
+        source_id = f"S{index}"
         sources.append(
             {
-                "sid": f"S{i}",
-                "chunk_id": r["chunk_id"],
-                "version_id": r["version_id"],
-                "chunk_index": r["chunk_index"],
-                "text": r["text"],
-                "document": r["document"],
-                "citations": r["node_refs"] or [],
+                "source_id": source_id,
+                # Alias legado mantido durante o contrato v1.
+                "sid": source_id,
+                "chunk_id": row["chunk_id"],
+                "version_id": row["version_id"],
+                "chunk_index": row["chunk_index"],
+                "text": row["text"],
+                "document": row["document"],
+                "citations": row["node_refs"] or [],
                 "scores": {
-                    "rrf_score": r["rrf_score"],
-                    "fts_rank": r["fts_rank"],
-                    "fts_score": r["fts_score"],
-                    "vec_rank": r["vec_rank"],
-                    "vec_distance": r["vec_distance"],
+                    "rrf_score": row["rrf_score"],
+                    "fts_rank": row["fts_rank"],
+                    "fts_score": row["fts_score"],
+                    "vec_rank": row["vec_rank"],
+                    "vec_distance": row["vec_distance"],
                 },
             }
         )
 
-    # extractive_answer (no MVP) pode retornar tuple (text, cited_sources)
-    # ou string/dict dependendo da implementação. Normalizamos para dict
-    # para compatibilizar com rag_runs.insert_rag_run().
     raw_answer = extractive_answer(question, sources)
     if isinstance(raw_answer, tuple) and len(raw_answer) >= 1:
         answer_text = raw_answer[0] or ""
@@ -64,15 +69,23 @@ def run_ask(
     elif isinstance(raw_answer, str):
         answer = {"text": raw_answer, "cited_sources": []}
     elif isinstance(raw_answer, dict):
-        answer = raw_answer
+        raw_cited = raw_answer.get("cited_sources") or []
+        answer = {
+            "text": str(raw_answer.get("text") or ""),
+            "cited_sources": [
+                str(source_id)
+                for source_id in raw_cited
+                if source_id is not None
+            ],
+        }
     else:
-        # fallback ultra defensivo
         answer = {"text": str(raw_answer), "cited_sources": []}
 
     run_json: Dict[str, Any] = {
         "schema_version": 1,
         "run_type": "ask_rag",
-        "run_id": str(uuid.uuid4()),
+        "request_id": canonical_request_id,
+        "run_id": canonical_run_id,
         "query": question,
         "filters": {
             "version_id": version_id,
@@ -91,6 +104,10 @@ def run_ask(
     }
 
     if audit:
-        insert_rag_run(run_json)
+        persisted_run_id = insert_rag_run(run_json)
+        if persisted_run_id != canonical_run_id:
+            raise RuntimeError(
+                "A auditoria do RAG não persistiu o run_id canônico."
+            )
 
     return run_json

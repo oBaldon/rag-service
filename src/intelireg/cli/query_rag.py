@@ -56,6 +56,8 @@ def main() -> None:
     run_id_short = run_id.split("-")[0]  # 8 chars
 
     out = run_query(
+        request_id=f"cli-{run_id}",
+        run_id=run_id,
         question=args.question,
         version_id=args.version_id,
         pipeline_version=args.pipeline_version,
@@ -76,8 +78,7 @@ def main() -> None:
         out_path = runs_dir / f"{day}_{run_id_short}_query.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # run_id e metadados úteis (auditáveis)
-    out["run_id"] = run_id
+    # Metadado local; o run_id já é canônico e foi persistido.
     out["output_path"] = str(out_path)
 
     # escreve JSON
