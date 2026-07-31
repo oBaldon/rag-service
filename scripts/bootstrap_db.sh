@@ -8,7 +8,7 @@ Bootstrap do banco (migrations + extensões).
 
 Uso:
   ./scripts/bootstrap_db.sh --db "$DATABASE_URL" --schema intelireg
-  ./scripts/bootstrap_db.sh --db "$DATABASE_URL" --schema intelireg --superuser-url "postgresql://postgres:...@localhost:5555/intelireg"
+  ./scripts/bootstrap_db.sh --db "$DATABASE_URL" --schema intelireg --superuser-url "postgresql://postgres:...@localhost:5432/intelireg"
 
 Opções:
   --db URL                Connection string (default: $DATABASE_URL)

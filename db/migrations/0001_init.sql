@@ -16,7 +16,7 @@ BEGIN
           'Sem permissão para CREATE EXTENSION % (db=%, role=%).',
           ext, current_database(), current_user
         USING HINT =
-          'Rode uma vez como superuser: psql -U postgres -p 5555 -d intelireg -c "CREATE EXTENSION IF NOT EXISTS '
+          'Rode uma vez como superuser: psql -U postgres -p 5432 -d intelireg -c "CREATE EXTENSION IF NOT EXISTS '
           || ext ||
           ';"  (e garanta que o pacote/extensão está instalado no servidor).';
       WHEN undefined_file THEN

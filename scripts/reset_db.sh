@@ -20,7 +20,7 @@ if [[ -z "${DATABASE_URL:-}" || -z "${PG_SUPERUSER_URL:-}" || -z "${PG_SCHEMA:-}
   fi
 fi
 
-: "${DATABASE_URL:?DATABASE_URL não definido. Ex: postgresql://intelireg:intelireg@localhost:5555/intelireg}"
+: "${DATABASE_URL:?DATABASE_URL não definido. Ex: postgresql://intelireg:intelireg@localhost:5432/intelireg}"
 
 YES=0
 SUPERUSER_URL="${PG_SUPERUSER_URL:-}"

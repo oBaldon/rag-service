@@ -48,15 +48,15 @@ Você precisa de:
 Exemplo (executar como superuser `postgres`):
 - criar role com senha
 - criar database com owner `intelireg`
-- (opcional) ajustar porta (ex.: 5555) no `postgresql.conf`
+- (opcional) ajustar porta (ex.: 5432) no `postgresql.conf`
 
-**Porta 5555**: se você está usando `localhost:5555`, garanta que seu Postgres está escutando nessa porta.
+**Porta 5432**: se você está usando `localhost:5432`, garanta que seu Postgres está escutando nessa porta.
 
 ## 4) Extensão pgvector (primeira vez)
 
 Se o `bootstrap_db.sh` reclamar de permissão, rode **uma vez** como superuser:
 
-- `psql -U postgres -p 5555 -d intelireg -c "CREATE EXTENSION IF NOT EXISTS vector;"`
+- `psql -U postgres -p 5432 -d intelireg -c "CREATE EXTENSION IF NOT EXISTS vector;"`
 
 Depois disso, o usuário normal (`intelireg`) costuma conseguir rodar as migrations sem problemas.
 
@@ -90,7 +90,7 @@ O módulo de embeddings usa `sentence-transformers`, que depende de **PyTorch** 
 Obrigatória:
 - `DATABASE_URL`
   - Exemplo:
-    - `postgresql://intelireg:intelireg@localhost:5555/intelireg`
+    - `postgresql://intelireg:intelireg@localhost:5432/intelireg`
 
 Para a API interna:
 - `RAG_API_KEY` (chave de serviço-a-serviço para chamadas internas)
@@ -108,10 +108,10 @@ Com o `DATABASE_URL` configurado:
 
 Se você quiser permitir que o script crie extensões como superuser automaticamente, forneça também:
 
-- `./scripts/bootstrap_db.sh --db "$DATABASE_URL" --superuser-url "postgresql://postgres:...@localhost:5555/intelireg"`
+- `./scripts/bootstrap_db.sh --db "$DATABASE_URL" --superuser-url "postgresql://postgres:...@localhost:5432/intelireg"`
 
 Ou exporte:
-- `export PG_SUPERUSER_URL="postgresql://postgres:...@localhost:5555/intelireg"`
+- `export PG_SUPERUSER_URL="postgresql://postgres:...@localhost:5432/intelireg"`
 
 ## 8) Problemas comuns
 
