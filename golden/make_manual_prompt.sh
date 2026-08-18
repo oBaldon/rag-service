@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNS_DIR="../storage/runs"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
+RUNS_DIR="storage/runs"
 OUT_FILE="${RUNS_DIR}/manual_prompt.txt"
 
 LATEST="$(find "$RUNS_DIR" -maxdepth 1 -type f -name '*_query.json' -printf '%f\n' \

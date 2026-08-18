@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
 ###############################################################################
 # InteliReg MVP — Atualização da KB (reset → ingest → index) + checagens
 # Baseado no run_intelireg_mvp.txt
@@ -17,7 +21,8 @@ set -euo pipefail
 # =========================================================
 # ✅ Use isto UMA vez por terminal/sessão:
 set -a
-source .env
+# shellcheck disable=SC1091
+source "$REPO_ROOT/.env"
 set +a
 
 # =========================================================

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
 ###############################################################################
 # InteliReg MVP — Query síncrona (somente consulta)
 # Baseado no run_intelireg_mvp.txt (seção 0 + seção 8), adaptado para:
@@ -21,7 +25,8 @@ TOPK="${TOPK:-5}"
 # 0) Carregar variáveis do .env (evita ter que passar inline)
 # =========================================================
 set -a
-source .env
+# shellcheck disable=SC1091
+source "$REPO_ROOT/.env"
 set +a
 
 PG_SCHEMA="${PG_SCHEMA:-intelireg}"
