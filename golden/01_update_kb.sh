@@ -197,7 +197,7 @@ if [ "$DO_INGEST" = "1" ]; then
     ingest_args=(
       --url "$url"
       --source-org ANVISA
-      --doc-type rdc
+      --doc-type auto
       --failure-log "$INGEST_FAILURE_LOG"
     )
     if [ "$REINDEX_EXISTING" = "1" ]; then

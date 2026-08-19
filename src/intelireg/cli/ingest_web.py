@@ -11,6 +11,7 @@ import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
+from urllib.parse import parse_qs, urlsplit
 from uuid import uuid4
 
 import httpx
@@ -114,6 +115,45 @@ def slugify(s: str, max_len: int = 80) -> str:
     if not s:
         s = "secao"
     return s[:max_len].strip("-") or "secao"
+
+
+_DOC_TYPE_CODE_RE = re.compile(r"^[a-z0-9_-]{1,32}$", re.IGNORECASE)
+_TITLE_DOC_TYPES = (
+    ("instrução normativa conjunta", "inc"),
+    ("instrucao normativa conjunta", "inc"),
+    ("instrução normativa", "inm"),
+    ("instrucao normativa", "inm"),
+    ("resolução da diretoria colegiada", "rdc"),
+    ("resolucao da diretoria colegiada", "rdc"),
+    ("portaria", "por"),
+    ("resolução", "res"),
+    ("resolucao", "res"),
+)
+
+
+def resolve_doc_type(requested: str, url: str, title: str) -> str:
+    """Resolve o tipo explícito ou o infere da URL/título da norma."""
+
+    explicit = normalize_text(requested).casefold()
+    if explicit and explicit != "auto":
+        return explicit
+
+    query = parse_qs(urlsplit(url).query)
+    url_values = next(
+        (values for key, values in query.items() if key.casefold() == "tipo"),
+        [],
+    )
+    if url_values:
+        candidate = normalize_text(url_values[0]).casefold()
+        if _DOC_TYPE_CODE_RE.fullmatch(candidate):
+            return candidate
+
+    normalized_title = normalize_text(title).casefold()
+    for prefix, doc_type in _TITLE_DOC_TYPES:
+        if normalized_title.startswith(prefix):
+            return doc_type
+
+    return "norma"
 
 
 # --------- Extração (modelo comum e Datalegis) ---------
@@ -1062,6 +1102,7 @@ def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
     title, node_drafts, content_hash = extract_nodes_auto(
         html, max_heading_level=args.max_heading_level
     )
+    doc_type = resolve_doc_type(args.doc_type, args.url, title)
 
     if not any((nd.text_normalized or "").strip() for nd in node_drafts):
         raise ValueError("nenhum conteúdo textual foi extraído da página")
@@ -1075,7 +1116,8 @@ def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
         idx = int(math.floor(0.95 * (len(text_sizes) - 1)))
         p95_chars = text_sizes[idx]
     print(
-        f"[ingest_web] extracted title={title!r} nodes={len(node_drafts)} "
+        f"[ingest_web] extracted title={title!r} doc_type={doc_type} "
+        f"nodes={len(node_drafts)} "
         f"max_node_chars={max_chars} p95_node_chars={p95_chars} fetch_attempts={fetched.attempts}"
     )
 
@@ -1158,7 +1200,7 @@ def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
                     INSERT INTO documents (document_id, title, source_org, doc_type)
                     VALUES (%s, %s, %s, %s)
                     """,
-                    (document_id, title or "Documento", args.source_org, args.doc_type),
+                    (document_id, title or "Documento", args.source_org, doc_type),
                 )
 
             cur.execute(
@@ -1236,7 +1278,14 @@ def main() -> int:
     )
     ap.add_argument("--url", required=True)
     ap.add_argument("--source-org", required=True)
-    ap.add_argument("--doc-type", required=True)
+    ap.add_argument(
+        "--doc-type",
+        default="auto",
+        help=(
+            "Tipo documental. Use 'auto' (padrão) para inferir do parâmetro "
+            "tipo= da URL e, como fallback, do título extraído."
+        ),
+    )
 
     ap.add_argument(
         "--reindex-existing",

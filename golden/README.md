@@ -59,6 +59,11 @@ chmod +x golden/01_update_kb.sh golden/02_query_rag.sh
 8. (Opcional) exporta `nodes/chunks` em `.jsonl.gz`
 9. Se alguma URL falhar, mantém um relatório JSONL em `storage/logs/`
 
+O tipo documental é inferido automaticamente do parâmetro `tipo=` da URL.
+Por exemplo, `RDC`, `INM`, `POR` e `RES` são persistidos como `rdc`, `inm`,
+`por` e `res`. Se a URL não trouxer esse parâmetro, o ingest tenta reconhecer o
+tipo pelo título; sem evidência suficiente, usa `norma`.
+
 ### Comando padrão (reset + ingest + index, sem export)
 ```bash
 DO_RESET=1 DO_INGEST=1 DO_INDEX=1 EXPORT_ALL=0 \
