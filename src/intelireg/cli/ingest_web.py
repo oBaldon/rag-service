@@ -6,6 +6,7 @@ import itertools
 import math
 import hashlib
 import re
+import sys
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -18,6 +19,11 @@ from bs4.element import Tag
 
 from intelireg import settings
 from intelireg.db import get_conn
+from intelireg.ingest_resilience import (
+    append_failure_record,
+    failure_record,
+    fetch_html_with_retries,
+)
 from intelireg.jobs import enqueue_job
 
 
@@ -1018,63 +1024,47 @@ def find_version_id_by_content_hash(cur, content_hash: str) -> Optional[str]:
 
 # --------- CLI ---------
 
-def main() -> None:
-    ap = argparse.ArgumentParser(
-        description="Ingestão MVP: URL -> nodes (Datalegis ou headings) -> READY_FOR_INDEX + enqueue IndexVersionJob"
-    )
-    ap.add_argument("--url", required=True)
-    ap.add_argument("--source-org", required=True)
-    ap.add_argument("--doc-type", required=True)
+@dataclass
+class IngestContext:
+    stage: str = "startup"
 
-    ap.add_argument(
-        "--reindex-existing",
-        action="store_true",
-        help="Se o content_hash já existir, não recria versão/nodes; apenas re-enfileira IndexVersionJob para a versão existente.",
-    )
- 
-    ap.add_argument(
-        "--max-heading-level",
-        type=int,
-        default=settings.CANON_MAX_HEADING_LEVEL,
-        help="Nível máximo de heading (H1..Hn) quando NÃO for Datalegis.",
-    )
 
-    ap.add_argument(
-        "--pipeline-version",
-        default=settings.PIPELINE_VERSION,
-        help="Versão do pipeline (mudou chunking/embeddings => bump).",
-    )
-    ap.add_argument(
-        "--embedding-model-id",
-        default=settings.EMBEDDING_MODEL_ID,
-        help="Identificador do modelo de embeddings (rastreabilidade).",
-    )
+def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
+    context.stage = "fetch"
 
-    args = ap.parse_args()
-
-    # 1) fetch HTML
-    with httpx.Client(
-        follow_redirects=True,
-        timeout=30.0,
-        headers={"User-Agent": "InteliReg-MVP/0.1"},
-    ) as client:
-        resp = client.get(args.url)
-
-    final_url = str(resp.url)
-    http_status = int(resp.status_code)
-    captured_at = datetime.now(timezone.utc)
-
-    if http_status < 200 or http_status >= 300:
-        raise SystemExit(
-            f"HTTP {http_status} ao buscar {args.url} (final_url={final_url})"
+    def report_retry(attempt: int, delay: float, reason: str) -> None:
+        print(
+            f"[ingest_web] tentativa {attempt} falhou ({reason}); "
+            f"nova tentativa em {delay:.1f}s",
+            file=sys.stderr,
         )
 
-    html = resp.text
+    with httpx.Client(
+        follow_redirects=True,
+        timeout=args.http_timeout_seconds,
+        headers={"User-Agent": "InteliReg-MVP/0.1"},
+    ) as client:
+        fetched = fetch_html_with_retries(
+            client,
+            args.url,
+            max_attempts=args.http_max_attempts,
+            backoff_seconds=args.http_backoff_seconds,
+            max_backoff_seconds=args.http_max_backoff_seconds,
+            on_retry=report_retry,
+        )
 
-    # 2) canonicalizar
+    final_url = fetched.final_url
+    http_status = fetched.http_status
+    captured_at = datetime.now(timezone.utc)
+    html = fetched.html
+
+    context.stage = "extract"
     title, node_drafts, content_hash = extract_nodes_auto(
         html, max_heading_level=args.max_heading_level
     )
+
+    if not any((nd.text_normalized or "").strip() for nd in node_drafts):
+        raise ValueError("nenhum conteúdo textual foi extraído da página")
 
     # Métricas rápidas de qualidade do ingest (MVP)
     text_sizes = [len(nd.text_normalized or "") for nd in node_drafts if (nd.text_normalized or "").strip()]
@@ -1086,7 +1076,7 @@ def main() -> None:
         p95_chars = text_sizes[idx]
     print(
         f"[ingest_web] extracted title={title!r} nodes={len(node_drafts)} "
-        f"max_node_chars={max_chars} p95_node_chars={p95_chars}"
+        f"max_node_chars={max_chars} p95_node_chars={p95_chars} fetch_attempts={fetched.attempts}"
     )
 
     # sanity-check: paths únicos (o banco agora tende a impor isso também)
@@ -1094,10 +1084,12 @@ def main() -> None:
     dup_paths = [p for p, c in collections.Counter(paths).items() if c > 1]
     if dup_paths:
         sample = ", ".join(dup_paths[:10])
-        raise SystemExit(
-            f"[ingest_web] ERRO: paths duplicados no extractor ({len(dup_paths)}). Exemplos: {sample}"
+        raise ValueError(
+            f"paths duplicados no extractor ({len(dup_paths)}). Exemplos: {sample}"
         )
- 
+
+    context.stage = "prepare"
+
     # 3) preparar inserts
     version_id = str(uuid4())
 
@@ -1123,6 +1115,7 @@ def main() -> None:
 
     document_id: Optional[str] = None
 
+    context.stage = "database"
     with get_conn() as conn:
         with conn.cursor() as cur:
             existing_version = find_version_id_by_content_hash(cur, content_hash)
@@ -1143,6 +1136,7 @@ def main() -> None:
                 print(f"[ingest_web] conteúdo já existe (content_hash). version_id existente: {existing_version}")
 
                 if args.reindex_existing:
+                    context.stage = "enqueue"
                     job_id = enqueue_job(
                         "IndexVersionJob",
                         {
@@ -1194,6 +1188,7 @@ def main() -> None:
                 conn.commit()
                 print(f"[ingest_web] conteúdo já existe (race). version_id existente: {existing_version}")
                 if args.reindex_existing and existing_version:
+                    context.stage = "enqueue"
                     job_id = enqueue_job(
                         "IndexVersionJob",
                         {
@@ -1219,6 +1214,7 @@ def main() -> None:
         conn.commit()
 
     # 4) enfileirar indexação
+    context.stage = "enqueue"
     job_id = enqueue_job(
         "IndexVersionJob",
         {
@@ -1234,5 +1230,89 @@ def main() -> None:
     print(f"[ingest_web] enqueued IndexVersionJob job_id={job_id}")
 
 
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Ingestão MVP: URL -> nodes (Datalegis ou headings) -> READY_FOR_INDEX + enqueue IndexVersionJob"
+    )
+    ap.add_argument("--url", required=True)
+    ap.add_argument("--source-org", required=True)
+    ap.add_argument("--doc-type", required=True)
+
+    ap.add_argument(
+        "--reindex-existing",
+        action="store_true",
+        help="Se o content_hash já existir, não recria versão/nodes; apenas re-enfileira IndexVersionJob para a versão existente.",
+    )
+
+    ap.add_argument(
+        "--max-heading-level",
+        type=int,
+        default=settings.CANON_MAX_HEADING_LEVEL,
+        help="Nível máximo de heading (H1..Hn) quando NÃO for Datalegis.",
+    )
+
+    ap.add_argument(
+        "--pipeline-version",
+        default=settings.PIPELINE_VERSION,
+        help="Versão do pipeline (mudou chunking/embeddings => bump).",
+    )
+    ap.add_argument(
+        "--embedding-model-id",
+        default=settings.EMBEDDING_MODEL_ID,
+        help="Identificador do modelo de embeddings (rastreabilidade).",
+    )
+
+    ap.add_argument(
+        "--http-timeout-seconds",
+        type=float,
+        default=settings.INGEST_HTTP_TIMEOUT_SECONDS,
+        help="Timeout de cada tentativa HTTP.",
+    )
+    ap.add_argument(
+        "--http-max-attempts",
+        type=int,
+        default=settings.INGEST_HTTP_MAX_ATTEMPTS,
+        help="Total de tentativas para falhas transitórias (rede, 429 e 5xx).",
+    )
+    ap.add_argument(
+        "--http-backoff-seconds",
+        type=float,
+        default=settings.INGEST_HTTP_BACKOFF_SECONDS,
+        help="Espera exponencial inicial entre tentativas.",
+    )
+    ap.add_argument(
+        "--http-max-backoff-seconds",
+        type=float,
+        default=settings.INGEST_HTTP_MAX_BACKOFF_SECONDS,
+        help="Limite da espera entre tentativas, inclusive para Retry-After.",
+    )
+    ap.add_argument(
+        "--failure-log",
+        help="Arquivo JSONL no qual registrar a falha desta URL sem apagar eventos anteriores.",
+    )
+
+    args = ap.parse_args()
+
+    context = IngestContext()
+    try:
+        _run_ingest(args, context)
+    except Exception as exc:
+        record = failure_record(args.url, context.stage, exc)
+        log_note = ""
+        if args.failure_log:
+            try:
+                append_failure_record(args.failure_log, record)
+                log_note = f"; registrado em {args.failure_log}"
+            except OSError as log_exc:
+                log_note = f"; também falhou ao gravar log: {log_exc}"
+        print(
+            f"[ingest_web] FALHA stage={context.stage} url={args.url}: {exc}{log_note}",
+            file=sys.stderr,
+        )
+        return 1
+
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

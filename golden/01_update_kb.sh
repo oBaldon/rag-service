@@ -177,23 +177,55 @@ echo "[urls] carregadas ${#URLS[@]} URLs de $URLS_FILE"
 # 4) Ingest (URLs)
 # =========================================================
 DO_INGEST="${DO_INGEST:-1}"
+INGEST_SUCCEEDED=0
+INGEST_FAILED=0
+INGEST_REQUEST_DELAY_SECONDS="${INGEST_REQUEST_DELAY_SECONDS:-1}"
+FAIL_ON_INGEST_ERRORS="${FAIL_ON_INGEST_ERRORS:-1}"
+INGEST_FAILURE_LOG="${INGEST_FAILURE_LOG:-storage/logs/ingest_failures_$(date -u +%Y%m%dT%H%M%SZ)_$$.jsonl}"
+
 if [ "$DO_INGEST" = "1" ]; then
   echo "========================================================="
   echo "[4] INGEST"
   echo "========================================================="
 
   REINDEX_EXISTING="${REINDEX_EXISTING:-0}"
-  REINDEX_FLAG=""
-  if [ "$REINDEX_EXISTING" = "1" ]; then
-    REINDEX_FLAG="--reindex-existing"
-  fi
-
   i=0
   for url in "${URLS[@]}"; do
     i=$((i+1))
     echo "[ingest] ($i/${#URLS[@]}) $url"
-    $INGEST_CMD --url "$url" --source-org ANVISA --doc-type rdc $REINDEX_FLAG
+
+    ingest_args=(
+      --url "$url"
+      --source-org ANVISA
+      --doc-type rdc
+      --failure-log "$INGEST_FAILURE_LOG"
+    )
+    if [ "$REINDEX_EXISTING" = "1" ]; then
+      ingest_args+=(--reindex-existing)
+    fi
+
+    if $INGEST_CMD "${ingest_args[@]}"; then
+      INGEST_SUCCEEDED=$((INGEST_SUCCEEDED+1))
+    else
+      ingest_exit=$?
+      if [ "$ingest_exit" -eq 130 ] || [ "$ingest_exit" -eq 143 ]; then
+        echo "[ingest] interrompido pelo usuário/sistema (exit=$ingest_exit)"
+        exit "$ingest_exit"
+      fi
+      INGEST_FAILED=$((INGEST_FAILED+1))
+      echo "[ingest] AVISO: URL falhou; continuando o lote. url=$url"
+    fi
+
+    # Evita rajadas de requisições no site de origem.
+    if [ "$i" -lt "${#URLS[@]}" ] && [ "$INGEST_REQUEST_DELAY_SECONDS" != "0" ]; then
+      sleep "$INGEST_REQUEST_DELAY_SECONDS"
+    fi
   done
+
+  echo "[ingest] resumo: ok=$INGEST_SUCCEEDED falhas=$INGEST_FAILED total=${#URLS[@]}"
+  if [ "$INGEST_FAILED" -gt 0 ]; then
+    echo "[ingest] detalhes das falhas: $INGEST_FAILURE_LOG"
+  fi
 
   psql_app -c "SELECT count(*) AS documents FROM documents;"
   psql_app -c "SELECT count(*) AS versions FROM document_versions;"
@@ -368,4 +400,12 @@ if [ "$EXPORT_VALIDATE" = "1" ]; then
 fi
 fi
 
-echo "DONE ✅ (KB atualizada: reset=$DO_RESET ingest=$DO_INGEST index=$DO_INDEX export=$EXPORT_ALL urls=${#URLS[@]})"
+if [ "$INGEST_FAILED" -gt 0 ]; then
+  echo "DONE COM AVISOS ⚠️ (KB parcial: ok=$INGEST_SUCCEEDED falhas=$INGEST_FAILED log=$INGEST_FAILURE_LOG)"
+  if [ "$FAIL_ON_INGEST_ERRORS" = "1" ]; then
+    # O lote inteiro e a indexação já terminaram; o status não zero evita falha silenciosa em automações.
+    exit 2
+  fi
+else
+  echo "DONE ✅ (KB atualizada: reset=$DO_RESET ingest=$DO_INGEST index=$DO_INDEX export=$EXPORT_ALL urls=${#URLS[@]})"
+fi

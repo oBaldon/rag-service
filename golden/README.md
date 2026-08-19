@@ -53,10 +53,11 @@ chmod +x golden/01_update_kb.sh golden/02_query_rag.sh
 2. (Opcional) reseta banco e reaplica bootstrap/migrations
 3. Garante extensão `vector` (pgvector) quando necessário
 4. Detecta os módulos executáveis de ingest e worker
-5. Carrega URLs do `urls.env` e **ingere todas as `URL_*`**
+5. Carrega URLs do `urls.env` e **ingere todas as `URL_*`**, sem interromper o lote quando uma delas falha
 6. Executa o worker até acabar a fila (`jobs.status='queued'`)
 7. Executa checagens rápidas no banco
 8. (Opcional) exporta `nodes/chunks` em `.jsonl.gz`
+9. Se alguma URL falhar, mantém um relatório JSONL em `storage/logs/`
 
 ### Comando padrão (reset + ingest + index, sem export)
 ```bash
@@ -85,6 +86,24 @@ URLS_FILE=golden/urls.env \
 - `DO_INDEX` (default `1`) — processa jobs de index até acabar fila
 - `EXPORT_ALL` (default `1`) — exporta `nodes/chunks` em `.jsonl.gz` (quando `1`)
 - `URLS_FILE` (default `golden/urls.env`) — arquivo com `export URL_*="..."`
+- `INGEST_REQUEST_DELAY_SECONDS` (default `1`) — intervalo entre URLs para evitar rajadas contra o site de origem
+- `INGEST_FAILURE_LOG` — caminho opcional do relatório JSONL; por padrão usa um nome único em `storage/logs/`
+- `FAIL_ON_INGEST_ERRORS` (default `1`) — após concluir ingest/index/export, retorna status `2` se houve falhas; use `0` para aceitar KB parcial com status de sucesso
+
+As opções HTTP também podem ser configuradas no `.env`:
+
+- `INGEST_HTTP_TIMEOUT_SECONDS` (default `30`)
+- `INGEST_HTTP_MAX_ATTEMPTS` (default `3`)
+- `INGEST_HTTP_BACKOFF_SECONDS` (default `2`)
+- `INGEST_HTTP_MAX_BACKOFF_SECONDS` (default `60`)
+
+Timeouts, erros de rede, HTTP 429 e HTTP 5xx usam espera exponencial e respeitam
+`Retry-After` até o limite configurado. Erros permanentes, como HTTP 404, não são
+repetidos. Cada linha do relatório é um JSON independente, por exemplo:
+
+```json
+{"timestamp":"2026-08-18T15:00:00+00:00","event":"ingest_failure","url":"https://exemplo.invalid/norma","stage":"fetch","error_type":"FetchFailure","message":"HTTP 404 ao buscar a URL (erro permanente)","http_status":404,"final_url":"https://exemplo.invalid/norma","attempts":1,"max_attempts":3,"retryable":false}
+```
 
 ---
 

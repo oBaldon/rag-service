@@ -57,6 +57,18 @@ Path(HF_CACHE_DIR).mkdir(parents=True, exist_ok=True)
 # Canonicalização
 CANON_MAX_HEADING_LEVEL = 3
 
+# Coleta web: retries são reservados para timeout/rede, 429 e erros 5xx.
+INGEST_HTTP_TIMEOUT_SECONDS = float(
+    os.getenv("INGEST_HTTP_TIMEOUT_SECONDS", "30")
+)
+INGEST_HTTP_MAX_ATTEMPTS = int(os.getenv("INGEST_HTTP_MAX_ATTEMPTS", "3"))
+INGEST_HTTP_BACKOFF_SECONDS = float(
+    os.getenv("INGEST_HTTP_BACKOFF_SECONDS", "2")
+)
+INGEST_HTTP_MAX_BACKOFF_SECONDS = float(
+    os.getenv("INGEST_HTTP_MAX_BACKOFF_SECONDS", "60")
+)
+
 # Chunking em palavras (proxy de tokens no MVP)
 CHUNK_TARGET_WORDS = 450
 CHUNK_MIN_WORDS = 200
