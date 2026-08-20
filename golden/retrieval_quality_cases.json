@@ -1,0 +1,92 @@
+[
+  {
+    "id": "T01",
+    "question": "Instrução Normativa - IN nº 352, de 18/03/2025",
+    "expected_title_contains_any": [
+      "IN no 352",
+      "IN nº 352"
+    ],
+    "max_rank": 1
+  },
+  {
+    "id": "T02",
+    "question": "Portaria - PRT nº 1.520, de 17/09/2019",
+    "expected_title_contains_any": [
+      "PRT no 1.520",
+      "PRT nº 1.520",
+      "Portaria no 1.520",
+      "Portaria nº 1.520"
+    ],
+    "max_rank": 1
+  },
+  {
+    "id": "T03",
+    "question": "RDC nº 476, de 10/03/2021",
+    "expected_title_contains_any": [
+      "RDC no 476",
+      "RDC nº 476"
+    ],
+    "max_rank": 1
+  },
+  {
+    "id": "T04",
+    "question": "RDC nº 17, de 28/03/2013",
+    "expected_title_contains_any": [
+      "RDC no 17",
+      "RDC nº 17"
+    ],
+    "max_rank": 1
+  },
+  {
+    "id": "T05",
+    "question": "responsabilidades dos Representantes da Anvisa na Assembleia ICH",
+    "expected_title_contains_any": [
+      "PRT no 1.520",
+      "PRT nº 1.520"
+    ],
+    "max_rank": 3,
+    "expected_text_contains_any": [
+      "responsabilidades dos representantes da anvisa na assembleia ich"
+    ]
+  },
+  {
+    "id": "T06",
+    "question": "importação excepcional e temporária de medicamento ou vacina",
+    "expected_title_contains_any": [
+      "RDC no 476",
+      "RDC nº 476"
+    ],
+    "max_rank": 3
+  },
+  {
+    "id": "T07",
+    "question": "Onde as normas disponíveis definem autorização para funcionamento de estabelecimentos sujeitos à vigilância sanitária?",
+    "expected_text_contains_any": [
+      "autorização de funcionamento",
+      "autorizacao de funcionamento"
+    ],
+    "max_rank": 3
+  },
+  {
+    "id": "T08",
+    "question": "Quais atos regulatórios disponíveis tratam das atribuições de representantes brasileiros em fóruns internacionais de harmonização farmacêutica?",
+    "expected_title_contains_any": [
+      "PRT no 1.520",
+      "PRT nº 1.520",
+      "PRT no 539",
+      "PRT nº 539"
+    ],
+    "max_rank": 3
+  },
+  {
+    "id": "T09",
+    "question": "Quais normas disponíveis tratam da participação da Anvisa no ICH?",
+    "expected_title_contains_any": [
+      "PRT no 1.520",
+      "PRT nº 1.520",
+      "PRT no 539",
+      "PRT nº 539"
+    ],
+    "max_rank": 3
+  }
+]

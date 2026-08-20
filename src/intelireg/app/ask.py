@@ -57,6 +57,10 @@ def run_ask(
                     "fts_score": row["fts_score"],
                     "vec_rank": row["vec_rank"],
                     "vec_distance": row["vec_distance"],
+                    "final_score": row.get("final_score"),
+                    "lexical_coverage": row.get("lexical_coverage"),
+                    "exact_identifier_match": row.get("exact_identifier_match", False),
+                    "exact_identifier_rank": row.get("exact_identifier_rank"),
                 },
             }
         )

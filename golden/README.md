@@ -156,3 +156,15 @@ Rodar:
 ## Contrato do JSON (input do LLM)
 O `query_rag` gera JSON com `schema_version=1` e bloco canônico `retrieval`.  
 Ver: `docs/schema_query_v1.md`
+
+## Regressão de qualidade do retrieval
+
+Após subir a API com o corpus indexado:
+
+```bash
+python golden/check_retrieval_quality.py --base-url http://127.0.0.1:8088
+```
+
+Os casos T01–T09 ficam em `golden/retrieval_quality_cases.json`. Eles verificam
+identificadores exatos, conteúdo lexical, consulta conceitual e paráfrase.
+

@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from uuid import uuid4
 
 from intelireg.audit import record_query_run
-from intelireg.retrieval import hybrid_retrieve_rrf
+from intelireg.retrieval import hybrid_retrieve_rrf, retrieval_debug_summary
 
 
 def build_query_output(
@@ -49,6 +49,10 @@ def build_query_output(
                     "fts_score": row["fts_score"],
                     "vec_rank": row["vec_rank"],
                     "vec_distance": row["vec_distance"],
+                    "final_score": row.get("final_score"),
+                    "lexical_coverage": row.get("lexical_coverage"),
+                    "exact_identifier_match": row.get("exact_identifier_match", False),
+                    "exact_identifier_rank": row.get("exact_identifier_rank"),
                 },
                 "chunk": {
                     "chunk_id": row["chunk_id"],
@@ -87,6 +91,13 @@ def build_query_output(
             "n2_vec": n2_vec,
             "rrf_k": rrf_k,
             "top_k": top_k,
+            **retrieval_debug_summary(
+                question,
+                rows,
+                top_k=top_k,
+                n1_fts=n1_fts,
+                n2_vec=n2_vec,
+            ),
         },
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "results": results,
@@ -128,6 +139,8 @@ def run_query(
             {
                 "rank": result["rank"],
                 "rrf_score": result["scores"]["rrf_score"],
+                "final_score": result["scores"].get("final_score"),
+                "exact_identifier_match": result["scores"].get("exact_identifier_match", False),
                 "chunk_id": result["chunk"]["chunk_id"],
                 "version_id": result["chunk"]["version_id"],
                 "chunk_index": result["chunk"]["chunk_index"],

@@ -192,3 +192,21 @@ Formato padronizado:
 ```
 
 Detalhes internos, credenciais e stack traces não são devolvidos ao consumidor.
+
+## Retrieval Quality v2 (campos aditivos)
+
+`/v1/rag/query` mantém o contrato v1 e acrescenta diagnóstico opcional:
+
+- `retrieval.strategy_version`
+- `retrieval.candidate_limit`
+- `retrieval.effective_n1_fts`
+- `retrieval.effective_n2_vec`
+- `retrieval.identifier`
+- `scores.final_score`
+- `scores.lexical_coverage`
+- `scores.exact_identifier_match`
+- `scores.exact_identifier_rank`
+
+`rrf_score` não foi redefinido: continua representando somente Reciprocal Rank
+Fusion entre FTS e vetor. `final_score` é o sinal usado no reranking final.
+

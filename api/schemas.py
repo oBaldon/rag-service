@@ -29,8 +29,8 @@ class RetrievalRequest(StrictModel):
     pipeline_version: Optional[str] = Field(default=None, max_length=100)
     embedding_model_id: Optional[str] = Field(default=None, max_length=255)
 
-    n1_fts: int = Field(default=30, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
-    n2_vec: int = Field(default=30, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
+    n1_fts: int = Field(default=settings.RETRIEVAL_N1, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
+    n2_vec: int = Field(default=settings.RETRIEVAL_N2, ge=0, le=settings.RETRIEVAL_CANDIDATES_MAX)
     rrf_k: int = Field(default=60, ge=1, le=settings.RRF_K_MAX)
     top_k: int = Field(default=5, ge=1, le=settings.TOP_K_MAX)
 
@@ -51,6 +51,15 @@ class RetrievalConfig(StrictModel):
     n2_vec: int
     rrf_k: int
     top_k: int
+    strategy_version: Optional[str] = None
+    candidate_limit: Optional[int] = None
+    effective_n1_fts: Optional[int] = None
+    effective_n2_vec: Optional[int] = None
+    identifier: Optional[Dict[str, Any]] = None
+    identifier_lookup_enabled: Optional[bool] = None
+    rerank_enabled: Optional[bool] = None
+    diversity_enabled: Optional[bool] = None
+    result_count: Optional[int] = None
 
 
 class ScoreBreakdown(StrictModel):
@@ -59,6 +68,10 @@ class ScoreBreakdown(StrictModel):
     fts_score: Optional[float]
     vec_rank: Optional[int]
     vec_distance: Optional[float]
+    final_score: Optional[float] = None
+    lexical_coverage: Optional[float] = None
+    exact_identifier_match: bool = False
+    exact_identifier_rank: Optional[int] = None
 
 
 class ChunkEvidence(StrictModel):

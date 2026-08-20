@@ -80,11 +80,41 @@ INDEX_WORKER_ID_DEFAULT = "index-worker-1"
 INDEX_WORKER_SLEEP_SECONDS = 5.0
 
 # Retrieval
-RETRIEVAL_N1 = int(os.getenv("RETRIEVAL_N1", "50"))
-RETRIEVAL_N2 = int(os.getenv("RETRIEVAL_N2", "10"))
+RETRIEVAL_N1 = int(os.getenv("RETRIEVAL_N1", "30"))
+RETRIEVAL_N2 = int(os.getenv("RETRIEVAL_N2", "30"))
 RRF_K = int(os.getenv("RRF_K", "60"))
 TOP_K_DEFAULT = int(os.getenv("TOP_K_DEFAULT", "12"))
 HNSW_EF_SEARCH = int(os.getenv("HNSW_EF_SEARCH", "120"))
+
+# Retrieval regulatório / reranking
+REGULATORY_IDENTIFIER_LOOKUP_ENABLED = _env_bool(
+    "REGULATORY_IDENTIFIER_LOOKUP_ENABLED",
+    default=True,
+)
+REGULATORY_IDENTIFIER_LOOKUP_LIMIT = int(
+    os.getenv("REGULATORY_IDENTIFIER_LOOKUP_LIMIT", "250")
+)
+REGULATORY_IDENTIFIER_MAX_CHUNKS = int(
+    os.getenv("REGULATORY_IDENTIFIER_MAX_CHUNKS", "1")
+)
+RERANK_ENABLED = _env_bool("RERANK_ENABLED", default=True)
+RERANK_CANDIDATE_MULTIPLIER = int(
+    os.getenv("RERANK_CANDIDATE_MULTIPLIER", "4")
+)
+RERANK_CANDIDATES_MAX = int(os.getenv("RERANK_CANDIDATES_MAX", "80"))
+RERANK_LEXICAL_WEIGHT = float(os.getenv("RERANK_LEXICAL_WEIGHT", "0.012"))
+RERANK_EXACT_IDENTIFIER_WEIGHT = float(
+    os.getenv("RERANK_EXACT_IDENTIFIER_WEIGHT", "1.0")
+)
+# Diversificação fica disponível, mas desligada por padrão até o benchmark
+# mostrar que o ganho supera a perda de múltiplos artigos úteis da mesma norma.
+RERANK_DIVERSITY_ENABLED = _env_bool(
+    "RERANK_DIVERSITY_ENABLED",
+    default=False,
+)
+RERANK_MAX_CHUNKS_PER_DOCUMENT = int(
+    os.getenv("RERANK_MAX_CHUNKS_PER_DOCUMENT", "3")
+)
 
 # Limites da API v1
 QUESTION_MAX_LENGTH = int(os.getenv("QUESTION_MAX_LENGTH", "10000"))
@@ -124,7 +154,37 @@ def validate_runtime_configuration() -> list[str]:
     if RETRIEVAL_CANDIDATES_MAX < 1:
         errors.append("RETRIEVAL_CANDIDATES_MAX deve ser maior que zero")
 
+    if RETRIEVAL_N1 <= 0 and RETRIEVAL_N2 <= 0:
+        errors.append("Ao menos um canal de retrieval deve estar habilitado")
+
+    if RETRIEVAL_N1 > RETRIEVAL_CANDIDATES_MAX:
+        errors.append("RETRIEVAL_N1 excede RETRIEVAL_CANDIDATES_MAX")
+
+    if RETRIEVAL_N2 > RETRIEVAL_CANDIDATES_MAX:
+        errors.append("RETRIEVAL_N2 excede RETRIEVAL_CANDIDATES_MAX")
+
     if TOP_K_MAX < 1:
         errors.append("TOP_K_MAX deve ser maior que zero")
+
+    if REGULATORY_IDENTIFIER_LOOKUP_LIMIT < 1:
+        errors.append("REGULATORY_IDENTIFIER_LOOKUP_LIMIT deve ser maior que zero")
+
+    if REGULATORY_IDENTIFIER_MAX_CHUNKS < 1:
+        errors.append("REGULATORY_IDENTIFIER_MAX_CHUNKS deve ser maior que zero")
+
+    if RERANK_CANDIDATE_MULTIPLIER < 1:
+        errors.append("RERANK_CANDIDATE_MULTIPLIER deve ser maior que zero")
+
+    if RERANK_CANDIDATES_MAX < 1:
+        errors.append("RERANK_CANDIDATES_MAX deve ser maior que zero")
+
+    if RERANK_LEXICAL_WEIGHT < 0:
+        errors.append("RERANK_LEXICAL_WEIGHT não pode ser negativo")
+
+    if RERANK_EXACT_IDENTIFIER_WEIGHT < 0:
+        errors.append("RERANK_EXACT_IDENTIFIER_WEIGHT não pode ser negativo")
+
+    if RERANK_MAX_CHUNKS_PER_DOCUMENT < 1:
+        errors.append("RERANK_MAX_CHUNKS_PER_DOCUMENT deve ser maior que zero")
 
     return errors
