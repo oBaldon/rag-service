@@ -192,3 +192,153 @@ def test_exact_lookup_filters_same_number_wrong_normative_family():
 
     assert len(matched) == 1
     assert "RDC no 476" in matched[0]["title"]
+
+
+def test_semantic_concept_signal_promotes_vocab_matched_candidate(monkeypatch, tmp_path):
+    import json
+    from intelireg.semantic_vocabulary import clear_semantic_vocabulary_cache, expand_query
+
+    vocab = {
+        "schema_version": 1,
+        "vocabulary_version": "test-v1",
+        "language": "pt-BR",
+        "concepts": [
+            {
+                "id": "ich",
+                "label": "ICH",
+                "aliases": ["ICH", "harmonização farmacêutica"],
+                "query_expansions": ["ICH"],
+                "embedding_terms": ["ICH"],
+            }
+        ],
+    }
+    path = tmp_path / "vocab.json"
+    path.write_text(json.dumps(vocab, ensure_ascii=False), encoding="utf-8")
+    monkeypatch.setattr(settings, "SEMANTIC_VOCABULARY_ENABLED", True)
+    monkeypatch.setattr(settings, "SEMANTIC_QUERY_EXPANSION_ENABLED", True)
+    monkeypatch.setattr(settings, "SEMANTIC_VOCABULARY_PATH", str(path))
+    monkeypatch.setattr(settings, "SEMANTIC_QUERY_EXPANSION_MAX_TERMS", 8)
+    monkeypatch.setattr(settings, "SEMANTIC_QUERY_EXPANSION_MAX_CHARS", 1600)
+    monkeypatch.setattr(settings, "SEMANTIC_CONCEPT_LOOKUP_MAX_TERMS", 12)
+    monkeypatch.setattr(settings, "RERANK_ENABLED", True)
+    monkeypatch.setattr(settings, "RERANK_SEMANTIC_CONCEPT_WEIGHT", 0.018)
+    clear_semantic_vocabulary_cache()
+
+    irrelevant = _candidate(
+        chunk_id="irrelevant",
+        title="RDC 176",
+        text="Competências administrativas e medicamentos biológicos.",
+        rrf=0.0164,
+        document_id="doc-irrelevant",
+    )
+    ich = _candidate(
+        chunk_id="ich",
+        title="Portaria 539",
+        text="Representantes da Anvisa na Assembleia ICH.",
+        rrf=0.0140,
+        document_id="doc-ich",
+    )
+
+    question = (
+        "atribuições de representantes brasileiros em fóruns internacionais "
+        "de harmonização farmacêutica"
+    )
+    expansion = expand_query(question)
+    ranked = rerank_candidates(
+        question,
+        [irrelevant, ich],
+        top_k=2,
+        query_expansion=expansion,
+    )
+
+    assert ranked[0]["chunk_id"] == "ich"
+    assert ranked[0]["semantic_concept_coverage"] == 1.0
+    assert ranked[0]["semantic_concepts_matched"] == ["ich"]
+    clear_semantic_vocabulary_cache()
+
+
+class _SemanticLookupCursor:
+    def __init__(self, rows):
+        self._rows = rows
+        self.sql = ""
+        self.params = []
+
+    def execute(self, sql, params):
+        self.sql = sql
+        self.params = list(params)
+        assert sql.count("%s") == len(self.params)
+
+    def fetchall(self):
+        return self._rows
+
+
+def test_semantic_lookup_builds_auditable_candidates(monkeypatch, tmp_path):
+    import json
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    from intelireg.retrieval import _fetch_semantic_concept_chunks
+    from intelireg.semantic_vocabulary import clear_semantic_vocabulary_cache, expand_query
+
+    path = tmp_path / "vocab.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "vocabulary_version": "test-v1",
+                "language": "pt-BR",
+                "concepts": [
+                    {
+                        "id": "ich",
+                        "label": "ICH",
+                        "aliases": ["ICH", "harmonização farmacêutica"],
+                        "query_expansions": ["ICH"],
+                        "embedding_terms": ["ICH"],
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(settings, "SEMANTIC_VOCABULARY_ENABLED", True)
+    monkeypatch.setattr(settings, "SEMANTIC_QUERY_EXPANSION_ENABLED", True)
+    monkeypatch.setattr(settings, "SEMANTIC_CONCEPT_LOOKUP_ENABLED", True)
+    monkeypatch.setattr(settings, "SEMANTIC_VOCABULARY_PATH", str(path))
+    monkeypatch.setattr(settings, "SEMANTIC_QUERY_EXPANSION_MAX_TERMS", 8)
+    monkeypatch.setattr(settings, "SEMANTIC_QUERY_EXPANSION_MAX_CHARS", 1600)
+    monkeypatch.setattr(settings, "SEMANTIC_CONCEPT_LOOKUP_MAX_TERMS", 12)
+    clear_semantic_vocabulary_cache()
+
+    row = (
+        uuid4(),
+        uuid4(),
+        "mvp-v2-semantic-v1",
+        3,
+        100,
+        "Representantes da Anvisa na Assembleia ICH.",
+        [],
+        uuid4(),
+        "Portaria - PRT no 539, de 02/05/2024",
+        "ANVISA",
+        "prt",
+        "https://example.test",
+        None,
+        datetime.now(timezone.utc),
+    )
+    cursor = _SemanticLookupCursor([row])
+    expansion = expand_query("fóruns internacionais de harmonização farmacêutica")
+
+    candidates = _fetch_semantic_concept_chunks(
+        cursor,
+        expansion,
+        pipeline_version="mvp-v2-semantic-v1",
+        version_id=None,
+        max_chunks=10,
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0]["semantic_lookup_match"] is True
+    assert candidates[0]["semantic_lookup_rank"] == 1
+    assert "websearch_to_tsquery" in cursor.sql
+    clear_semantic_vocabulary_cache()

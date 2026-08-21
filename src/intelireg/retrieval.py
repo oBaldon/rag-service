@@ -9,6 +9,12 @@ from typing import Any, Dict, List, Optional
 from intelireg.db import get_conn
 import intelireg.settings as settings
 from intelireg.embeddings import embed_query_pgvector
+from intelireg.semantic_vocabulary import (
+    QueryExpansion,
+    expand_query,
+    search_terms_for_concepts,
+    semantic_concept_coverage,
+)
 from intelireg.regulatory_identifiers import (
     RegulatoryIdentifier,
     family_search_terms,
@@ -439,14 +445,123 @@ def _fetch_exact_identifier_chunks(
     return results
 
 
+
+def _fetch_semantic_concept_chunks(
+    cur,
+    query_expansion: QueryExpansion,
+    *,
+    pipeline_version: str,
+    version_id: Optional[str],
+    max_chunks: int,
+) -> List[Dict[str, Any]]:
+    """
+    Canal determinístico de recall baseado no vocabulário controlado.
+
+    Ele não substitui FTS/vector: apenas garante que conceitos explicitamente
+    reconhecidos na pergunta consigam trazer candidatos que usam aliases
+    canônicos (ex.: "harmonização farmacêutica" -> chunks contendo "ICH").
+    """
+    if (
+        not settings.SEMANTIC_CONCEPT_LOOKUP_ENABLED
+        or not query_expansion.matched_concepts
+        or max_chunks <= 0
+    ):
+        return []
+
+    terms = search_terms_for_concepts(query_expansion.matched_concepts)
+    if not terms:
+        return []
+
+    clauses: List[str] = []
+    params: List[Any] = []
+    for term in terms:
+        clauses.append(
+            """(
+                c.tsv @@ websearch_to_tsquery('portuguese', %s)
+                OR to_tsvector('portuguese', unaccent(coalesce(d.title,'')))
+                   @@ websearch_to_tsquery('portuguese', %s)
+            )"""
+        )
+        params.extend([term, term])
+
+    version_clause = ""
+    if version_id is not None:
+        version_clause = " AND c.version_id = %s::uuid"
+        params.append(version_id)
+
+    params.extend([pipeline_version, max_chunks])
+    sql = f"""
+        SELECT
+          c.chunk_id,
+          c.version_id,
+          c.pipeline_version,
+          c.chunk_index,
+          c.tokens_count,
+          c.text,
+          c.node_refs,
+          d.document_id,
+          d.title,
+          d.source_org,
+          d.doc_type,
+          v.source_url,
+          v.final_url,
+          v.captured_at
+        FROM embedding_chunks c
+        JOIN document_versions v ON v.version_id = c.version_id
+        JOIN documents d ON d.document_id = v.document_id
+        WHERE v.status = 'INDEXED'
+          AND ({' OR '.join(clauses)})
+          {version_clause}
+          AND c.pipeline_version = %s
+        ORDER BY v.captured_at DESC NULLS LAST, d.title ASC, c.chunk_index ASC
+        LIMIT %s
+    """
+    cur.execute(sql, params)
+
+    results: List[Dict[str, Any]] = []
+    for semantic_rank, row in enumerate(cur.fetchall(), start=1):
+        results.append(
+            {
+                "chunk_id": str(row[0]),
+                "rrf_score": 0.0,
+                "fts_rank": None,
+                "fts_score": None,
+                "vec_rank": None,
+                "vec_distance": None,
+                "version_id": str(row[1]),
+                "pipeline_version": row[2],
+                "chunk_index": row[3],
+                "tokens_count": row[4],
+                "text": row[5],
+                "node_refs": row[6],
+                "document": {
+                    "document_id": str(row[7]),
+                    "title": row[8],
+                    "source_org": row[9],
+                    "doc_type": row[10],
+                    "source_url": row[11],
+                    "final_url": row[12],
+                    "captured_at": (
+                        row[13].isoformat() if row[13] is not None else None
+                    ),
+                },
+                "exact_identifier_match": False,
+                "exact_identifier_rank": None,
+                "semantic_lookup_match": True,
+                "semantic_lookup_rank": semantic_rank,
+            }
+        )
+    return results
+
+
 def _merge_candidates(
     base_candidates: List[Dict[str, Any]],
-    exact_candidates: List[Dict[str, Any]],
+    supplemental_candidates: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     by_chunk: Dict[str, Dict[str, Any]] = {}
     order: List[str] = []
 
-    for candidate in base_candidates + exact_candidates:
+    for candidate in base_candidates + supplemental_candidates:
         chunk_id = candidate["chunk_id"]
         existing = by_chunk.get(chunk_id)
         if existing is None:
@@ -457,6 +572,9 @@ def _merge_candidates(
         if candidate.get("exact_identifier_match"):
             existing["exact_identifier_match"] = True
             existing["exact_identifier_rank"] = candidate.get("exact_identifier_rank")
+        if candidate.get("semantic_lookup_match"):
+            existing["semantic_lookup_match"] = True
+            existing["semantic_lookup_rank"] = candidate.get("semantic_lookup_rank")
 
     return [by_chunk[chunk_id] for chunk_id in order]
 
@@ -466,6 +584,7 @@ def rerank_candidates(
     candidates: List[Dict[str, Any]],
     *,
     top_k: int,
+    query_expansion: QueryExpansion | None = None,
 ) -> List[Dict[str, Any]]:
     """
     Reranking determinístico e auditável.
@@ -489,16 +608,36 @@ def rerank_candidates(
         exact_match = bool(item.get("exact_identifier_match", False))
         base_rrf = float(item.get("rrf_score") or 0.0)
 
+        semantic_coverage = 0.0
+        semantic_matches: tuple[str, ...] = ()
+        if query_expansion is not None and query_expansion.matched_concepts:
+            semantic_coverage, semantic_matches = semantic_concept_coverage(
+                query_expansion.matched_concepts,
+                f"{item.get('document', {}).get('title', '')}\n{item.get('text', '')}",
+            )
+
         final_score = base_rrf
         if settings.RERANK_ENABLED:
             # Cobertura alta recebe sinal forte; correspondências parciais não
             # devem dominar o RRF apenas por compartilhar termos genéricos.
             final_score += settings.RERANK_LEXICAL_WEIGHT * (coverage ** 2)
+            final_score += (
+                settings.RERANK_SEMANTIC_CONCEPT_WEIGHT * semantic_coverage
+            )
         if exact_match:
             final_score += settings.RERANK_EXACT_IDENTIFIER_WEIGHT
 
         item["lexical_coverage"] = coverage
+        item["semantic_concept_coverage"] = semantic_coverage
+        item["semantic_concepts_matched"] = list(semantic_matches)
+        item["semantic_vocabulary_score"] = (
+            settings.RERANK_SEMANTIC_CONCEPT_WEIGHT * semantic_coverage
+            if settings.RERANK_ENABLED
+            else 0.0
+        )
         item["final_score"] = final_score
+        item.setdefault("semantic_lookup_match", False)
+        item.setdefault("semantic_lookup_rank", None)
         item.setdefault("exact_identifier_match", False)
         item.setdefault("exact_identifier_rank", None)
         scored.append(item)
@@ -552,14 +691,22 @@ def retrieval_debug_summary(
 ) -> Dict[str, Any]:
     identifier = parse_regulatory_identifier(question)
     plan = build_retrieval_plan(top_k, n1_fts, n2_vec)
+    expansion = expand_query(question)
     return {
-        "strategy_version": "hybrid-rerank-v2",
+        "strategy_version": "hybrid-rerank-v3-semantic",
         "candidate_limit": plan["candidate_limit"],
         "effective_n1_fts": plan["effective_n1_fts"],
         "effective_n2_vec": plan["effective_n2_vec"],
         "identifier": identifier_debug_dict(identifier),
         "identifier_lookup_enabled": bool(
             settings.REGULATORY_IDENTIFIER_LOOKUP_ENABLED
+        ),
+        "semantic_expansion": expansion.debug_dict(include_expanded_query=True),
+        "semantic_passage_enrichment_enabled": bool(
+            settings.SEMANTIC_PASSAGE_ENRICHMENT_ENABLED
+        ),
+        "semantic_concept_lookup_enabled": bool(
+            settings.SEMANTIC_CONCEPT_LOOKUP_ENABLED
         ),
         "rerank_enabled": bool(settings.RERANK_ENABLED),
         "diversity_enabled": bool(settings.RERANK_DIVERSITY_ENABLED),
@@ -586,9 +733,15 @@ def hybrid_retrieve_rrf(
     if n1_fts <= 0 and n2_vec <= 0:
         return []
 
+    expansion = expand_query(question)
+    retrieval_question = expansion.expanded_query or question
+
     qvec: Optional[str] = None
     if n2_vec > 0:
-        qvec = embed_query_pgvector(question, embedding_model_id=embedding_model_id)
+        qvec = embed_query_pgvector(
+            retrieval_question,
+            embedding_model_id=embedding_model_id,
+        )
 
     identifier = (
         parse_regulatory_identifier(question)
@@ -604,6 +757,9 @@ def hybrid_retrieve_rrf(
     # 1) websearch_to_tsquery(question)
     # 2) plainto_tsquery(keywords(question))
     # 3) to_tsquery OR entre keywords (mais permissivo)
+    # O canal lexical permanece fiel à pergunta original. A expansão semântica
+    # alimenta o vetor e o canal de conceitos; misturá-la no FTS pode tornar a
+    # tsquery excessivamente restritiva e regredir consultas literais já boas.
     fts_mode = "websearch"
     fts_text = question
 
@@ -825,7 +981,13 @@ def hybrid_retrieve_rrf(
         with conn.cursor() as cur:
             # Decide modo do FTS apenas se FTS está habilitado (n1_fts > 0)
             if n1_fts > 0:
-                hits = _fts_hits(cur, pipeline_version, version_id, "websearch", question)
+                hits = _fts_hits(
+                    cur,
+                    pipeline_version,
+                    version_id,
+                    "websearch",
+                    question,
+                )
                 if hits == 0:
                     kw = _build_fts_keywords_text(question)
                     hits_kw = _fts_hits(cur, pipeline_version, version_id, "plain", kw)
@@ -894,6 +1056,14 @@ def hybrid_retrieve_rrf(
                     max_chunks=settings.REGULATORY_IDENTIFIER_MAX_CHUNKS,
                 )
 
+            semantic_candidates = _fetch_semantic_concept_chunks(
+                cur,
+                expansion,
+                pipeline_version=pipeline_version,
+                version_id=version_id,
+                max_chunks=settings.SEMANTIC_CONCEPT_LOOKUP_LIMIT,
+            )
+
     results: List[Dict[str, Any]] = []
     for r in rows:
         results.append(
@@ -921,8 +1091,18 @@ def hybrid_retrieve_rrf(
                 },
                 "exact_identifier_match": False,
                 "exact_identifier_rank": None,
+                "semantic_lookup_match": False,
+                "semantic_lookup_rank": None,
             }
         )
 
-    merged = _merge_candidates(results, exact_candidates)
-    return rerank_candidates(question, merged, top_k=top_k)
+    merged = _merge_candidates(
+        results,
+        exact_candidates + semantic_candidates,
+    )
+    return rerank_candidates(
+        question,
+        merged,
+        top_k=top_k,
+        query_expansion=expansion,
+    )

@@ -206,4 +206,14 @@ echo "[bootstrap] checagens rápidas..."
   exit 4
 }
 
+"${PSQL[@]}" -qtAc "
+  SELECT 1
+  FROM information_schema.tables
+  WHERE table_schema='${SCHEMA}' AND table_name='index_profiles'
+  LIMIT 1;
+" | grep -q 1 || {
+  echo "ERRO: index_profiles não existe (verifique 0003_semantic_index_profiles.sql)" >&2
+  exit 4
+}
+
 echo "[bootstrap] OK ✅ banco pronto para uso."

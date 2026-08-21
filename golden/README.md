@@ -168,3 +168,32 @@ python golden/check_retrieval_quality.py --base-url http://127.0.0.1:8088
 Os casos T01–T09 ficam em `golden/retrieval_quality_cases.json`. Eles verificam
 identificadores exatos, conteúdo lexical, consulta conceitual e paráfrase.
 
+
+
+## Pipeline semântico / vocabulário controlado
+
+A evolução `mvp-v2-semantic-v1` adiciona vocabulário semântico regulatório,
+expansão controlada da query e enriquecimento do input vetorial.
+
+Validar o vocabulário:
+
+```bash
+PYTHONPATH=src python -m intelireg.cli.semantic_vocabulary
+```
+
+Preparar reindexação sem recrawl:
+
+```bash
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v1
+```
+
+Enfileirar de fato:
+
+```bash
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v1   --execute
+```
+
+Depois que o worker concluir todos os jobs, configure a API com
+`PIPELINE_VERSION=mvp-v2-semantic-v1` e rode novamente T01–T09.
+
+Consulte `docs/semantic_vocabulary.md`.

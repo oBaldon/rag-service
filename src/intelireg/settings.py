@@ -14,6 +14,9 @@ import os
 from pathlib import Path
 
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+
+
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
     if raw is None:
@@ -43,12 +46,57 @@ DATABASE_URL_ENV = "DATABASE_URL"
 PG_SCHEMA = os.getenv("PG_SCHEMA", "intelireg").strip() or "intelireg"
 
 # Pipeline e embedding: controlados pelo servidor
-PIPELINE_VERSION = os.getenv("PIPELINE_VERSION", "mvp-v1").strip()
+PIPELINE_VERSION = os.getenv("PIPELINE_VERSION", "mvp-v2-semantic-v1").strip()
 EMBEDDING_MODEL_ID = os.getenv(
     "EMBEDDING_MODEL_ID",
     "intfloat/multilingual-e5-small@384",
 ).strip()
 EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "384"))
+
+
+# Vocabulário semântico controlado
+SEMANTIC_VOCABULARY_ENABLED = _env_bool(
+    "SEMANTIC_VOCABULARY_ENABLED",
+    default=True,
+)
+_semantic_vocabulary_path_raw = os.getenv(
+    "SEMANTIC_VOCABULARY_PATH",
+    str(ROOT_DIR / "config" / "semantic_vocabulary.json"),
+).strip()
+_semantic_vocabulary_path = Path(_semantic_vocabulary_path_raw)
+if not _semantic_vocabulary_path.is_absolute():
+    _semantic_vocabulary_path = ROOT_DIR / _semantic_vocabulary_path
+SEMANTIC_VOCABULARY_PATH = str(_semantic_vocabulary_path.resolve())
+SEMANTIC_QUERY_EXPANSION_ENABLED = _env_bool(
+    "SEMANTIC_QUERY_EXPANSION_ENABLED",
+    default=True,
+)
+SEMANTIC_QUERY_EXPANSION_MAX_TERMS = int(
+    os.getenv("SEMANTIC_QUERY_EXPANSION_MAX_TERMS", "8")
+)
+SEMANTIC_QUERY_EXPANSION_MAX_CHARS = int(
+    os.getenv("SEMANTIC_QUERY_EXPANSION_MAX_CHARS", "1600")
+)
+SEMANTIC_CONCEPT_LOOKUP_ENABLED = _env_bool(
+    "SEMANTIC_CONCEPT_LOOKUP_ENABLED",
+    default=True,
+)
+SEMANTIC_CONCEPT_LOOKUP_LIMIT = int(
+    os.getenv("SEMANTIC_CONCEPT_LOOKUP_LIMIT", "40")
+)
+SEMANTIC_CONCEPT_LOOKUP_MAX_TERMS = int(
+    os.getenv("SEMANTIC_CONCEPT_LOOKUP_MAX_TERMS", "12")
+)
+SEMANTIC_PASSAGE_ENRICHMENT_ENABLED = _env_bool(
+    "SEMANTIC_PASSAGE_ENRICHMENT_ENABLED",
+    default=True,
+)
+SEMANTIC_PASSAGE_MAX_TERMS = int(
+    os.getenv("SEMANTIC_PASSAGE_MAX_TERMS", "6")
+)
+SEMANTIC_PASSAGE_MAX_PREFIX_CHARS = int(
+    os.getenv("SEMANTIC_PASSAGE_MAX_PREFIX_CHARS", "700")
+)
 
 # Hugging Face / SentenceTransformers cache
 HF_CACHE_DIR = os.getenv("HF_CACHE_DIR", str(Path("storage") / "hf_cache"))
@@ -103,6 +151,9 @@ RERANK_CANDIDATE_MULTIPLIER = int(
 )
 RERANK_CANDIDATES_MAX = int(os.getenv("RERANK_CANDIDATES_MAX", "80"))
 RERANK_LEXICAL_WEIGHT = float(os.getenv("RERANK_LEXICAL_WEIGHT", "0.012"))
+RERANK_SEMANTIC_CONCEPT_WEIGHT = float(
+    os.getenv("RERANK_SEMANTIC_CONCEPT_WEIGHT", "0.018")
+)
 RERANK_EXACT_IDENTIFIER_WEIGHT = float(
     os.getenv("RERANK_EXACT_IDENTIFIER_WEIGHT", "1.0")
 )
@@ -180,6 +231,27 @@ def validate_runtime_configuration() -> list[str]:
 
     if RERANK_LEXICAL_WEIGHT < 0:
         errors.append("RERANK_LEXICAL_WEIGHT não pode ser negativo")
+
+    if RERANK_SEMANTIC_CONCEPT_WEIGHT < 0:
+        errors.append("RERANK_SEMANTIC_CONCEPT_WEIGHT não pode ser negativo")
+
+    if SEMANTIC_VOCABULARY_ENABLED and not SEMANTIC_VOCABULARY_PATH:
+        errors.append("SEMANTIC_VOCABULARY_PATH não configurado")
+    elif SEMANTIC_VOCABULARY_ENABLED and not Path(SEMANTIC_VOCABULARY_PATH).is_file():
+        errors.append("SEMANTIC_VOCABULARY_PATH não aponta para arquivo existente")
+
+    if SEMANTIC_QUERY_EXPANSION_MAX_TERMS < 1:
+        errors.append("SEMANTIC_QUERY_EXPANSION_MAX_TERMS deve ser maior que zero")
+    if SEMANTIC_QUERY_EXPANSION_MAX_CHARS < 64:
+        errors.append("SEMANTIC_QUERY_EXPANSION_MAX_CHARS deve ser pelo menos 64")
+    if SEMANTIC_CONCEPT_LOOKUP_LIMIT < 1:
+        errors.append("SEMANTIC_CONCEPT_LOOKUP_LIMIT deve ser maior que zero")
+    if SEMANTIC_CONCEPT_LOOKUP_MAX_TERMS < 1:
+        errors.append("SEMANTIC_CONCEPT_LOOKUP_MAX_TERMS deve ser maior que zero")
+    if SEMANTIC_PASSAGE_MAX_TERMS < 1:
+        errors.append("SEMANTIC_PASSAGE_MAX_TERMS deve ser maior que zero")
+    if SEMANTIC_PASSAGE_MAX_PREFIX_CHARS < 64:
+        errors.append("SEMANTIC_PASSAGE_MAX_PREFIX_CHARS deve ser pelo menos 64")
 
     if RERANK_EXACT_IDENTIFIER_WEIGHT < 0:
         errors.append("RERANK_EXACT_IDENTIFIER_WEIGHT não pode ser negativo")

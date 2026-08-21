@@ -210,3 +210,25 @@ Detalhes internos, credenciais e stack traces não são devolvidos ao consumidor
 `rrf_score` não foi redefinido: continua representando somente Reciprocal Rank
 Fusion entre FTS e vetor. `final_score` é o sinal usado no reranking final.
 
+
+
+## Retrieval Quality v3 — vocabulário semântico (campos aditivos)
+
+O contrato HTTP continua em `schema_version=1`. A estratégia de retrieval pode
+expor adicionalmente:
+
+- `retrieval.semantic_expansion`
+- `retrieval.semantic_passage_enrichment_enabled`
+- `retrieval.semantic_concept_lookup_enabled`
+- `scores.semantic_concept_coverage`
+- `scores.semantic_vocabulary_score`
+- `scores.semantic_concepts_matched`
+- `scores.semantic_lookup_match`
+- `scores.semantic_lookup_rank`
+
+`retrieval.semantic_expansion` registra versão/hash do vocabulário e os termos
+controlados adicionados ao retrieval. A pergunta canônica permanece no campo
+top-level `query`.
+
+Os sinais semânticos são auxiliares de ranking e **não representam
+probabilidade, vigência ou confiança regulatória**.

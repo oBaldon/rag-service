@@ -13,6 +13,8 @@ from intelireg import settings
 from intelireg.db import get_conn
 from intelireg.jobs import fetch_next_job, mark_done, mark_failed
 from intelireg.embeddings import embed_pgvector_literals
+from intelireg.semantic_vocabulary import build_passage_embedding_text
+from intelireg.index_profiles import current_index_profile, ensure_index_profile
 
 # -------------------- hashing/normalização --------------------
 
@@ -422,14 +424,19 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
         with conn.cursor() as cur:
             # valida versão e status
             cur.execute(
-                "SELECT status FROM document_versions WHERE version_id = %s",
+                """
+                SELECT v.status, d.title, d.doc_type
+                FROM document_versions v
+                JOIN documents d ON d.document_id = v.document_id
+                WHERE v.version_id = %s
+                """,
                 (version_id,),
             )
             row = cur.fetchone()
             if not row:
                 raise RuntimeError(f"version_id não encontrado: {version_id}")
 
-            status = row[0]
+            status, document_title, document_type = row
             if status != "READY_FOR_INDEX" and not (force and status == "INDEXED"):
                 raise RuntimeError(
                     f"version_id {version_id} status inválido: {status} "
@@ -438,6 +445,14 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
             nodes = load_nodes(cur, version_id)
             if not nodes:
                 raise RuntimeError(f"version_id {version_id} não possui nodes")
+
+            ensure_index_profile(
+                cur,
+                current_index_profile(
+                    pipeline_version=pipeline_version,
+                    embedding_model_id=embedding_model_id,
+                ),
+            )
 
             # idempotência/reindex: limpa chunks/embeddings dessa versão + pipeline_version
             cur.execute(
@@ -469,9 +484,23 @@ def process_index_version(version_id: str, pipeline_version: str, embedding_mode
                 overlap_words=settings.CHUNK_OVERLAP_WORDS,
             )
             
+            # Embedding passage enriquecido sem alterar o texto canônico do chunk.
+            # O vocabulário semântico e o título/tipo do documento entram apenas
+            # na representação vetorial, preservando auditoria e citações.
+            passage_inputs: List[str] = []
+            for chunk in chunks:
+                passage_text, _matched_concepts = build_passage_embedding_text(
+                    title=document_title,
+                    doc_type=document_type,
+                    chunk_text=chunk["text"],
+                )
+                passage_inputs.append(passage_text)
+                # matched_concepts fica deliberadamente fora do chunk canônico;
+                # o perfil usado é rastreado pelo PIPELINE_VERSION + vocabulário.
+
             # embeddings em batch (melhor que 1 por 1)
             chunk_vecs = embed_pgvector_literals(
-                [c["text"] for c in chunks],
+                passage_inputs,
                 embedding_model_id=embedding_model_id,
                 role="passage",
                 batch_size=32,

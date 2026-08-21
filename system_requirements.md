@@ -131,3 +131,20 @@ Se aparecer algo como “CUDA initialization: The NVIDIA driver on your system i
 ### Índice HNSW não disponível
 Se seu pgvector for antigo, `USING hnsw` pode não existir.
 - O schema/boot ideal deve tratar isso (ou você remove o HNSW e usa um índice alternativo / nenhum índice no MVP).
+
+
+## 9) Vocabulário semântico regulatório
+
+O retrieval pode usar um vocabulário semântico versionado em
+`config/semantic_vocabulary.json`.
+
+Variáveis principais:
+
+- `SEMANTIC_VOCABULARY_ENABLED`
+- `SEMANTIC_VOCABULARY_PATH`
+- `SEMANTIC_QUERY_EXPANSION_ENABLED`
+- `SEMANTIC_PASSAGE_ENRICHMENT_ENABLED`
+
+O arquivo é carregado no processo e deve ser validado/revisado antes do deploy.
+Alterações que afetem `aliases` ou `embedding_terms` devem usar nova
+`PIPELINE_VERSION` e reindexação dos embeddings.

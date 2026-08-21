@@ -89,7 +89,9 @@ def main() -> int:
                     "id": case["id"],
                     "status": "PASS" if passed else "FAIL",
                     "matched_rank": rank,
+                    "strategy_version": (body.get("retrieval") or {}).get("strategy_version"),
                     "identifier": (body.get("retrieval") or {}).get("identifier"),
+                    "semantic_expansion": (body.get("retrieval") or {}).get("semantic_expansion"),
                     "top3": [
                         {
                             "rank": item.get("rank"),

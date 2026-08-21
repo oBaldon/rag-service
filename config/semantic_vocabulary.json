@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "vocabulary_version": "semantic-v1",
+  "language": "pt-BR",
+  "description": "Vocabulário semântico regulatório controlado do InteliReg. Alterações devem ser revisadas por especialistas de domínio.",
+  "concepts": [
+    {
+      "id": "ich_harmonizacao",
+      "label": "ICH e harmonização farmacêutica internacional",
+      "enabled": true,
+      "aliases": [
+        "ICH",
+        "International Council for Harmonisation",
+        "harmonização farmacêutica",
+        "harmonizacao farmaceutica",
+        "harmonização internacional farmacêutica",
+        "harmonizacao internacional farmaceutica",
+        "fóruns internacionais de harmonização farmacêutica",
+        "foruns internacionais de harmonizacao farmaceutica"
+      ],
+      "query_expansions": [
+        "ICH",
+        "International Council for Harmonisation",
+        "Assembleia ICH",
+        "Comitê Gestor ICH",
+        "harmonização e internalização do ICH"
+      ],
+      "embedding_terms": [
+        "ICH",
+        "harmonização farmacêutica internacional",
+        "International Council for Harmonisation"
+      ],
+      "notes": "Conceito inicial validado pela bateria T05/T08/T09. Revisar e ampliar com especialistas."
+    },
+    {
+      "id": "afe",
+      "label": "Autorização de Funcionamento de Empresa (AFE)",
+      "enabled": true,
+      "aliases": [
+        "AFE",
+        "Autorização de Funcionamento",
+        "Autorizacao de Funcionamento",
+        "autorização para funcionamento",
+        "autorizacao para funcionamento"
+      ],
+      "query_expansions": [
+        "AFE",
+        "Autorização de Funcionamento de Empresa",
+        "Autorização de Funcionamento"
+      ],
+      "embedding_terms": [
+        "AFE",
+        "Autorização de Funcionamento de Empresa"
+      ],
+      "notes": "Conceito inicial associado ao caso T07; não representa conclusão sobre aplicabilidade normativa."
+    }
+  ]
+}

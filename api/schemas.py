@@ -57,6 +57,9 @@ class RetrievalConfig(StrictModel):
     effective_n2_vec: Optional[int] = None
     identifier: Optional[Dict[str, Any]] = None
     identifier_lookup_enabled: Optional[bool] = None
+    semantic_expansion: Optional[Dict[str, Any]] = None
+    semantic_passage_enrichment_enabled: Optional[bool] = None
+    semantic_concept_lookup_enabled: Optional[bool] = None
     rerank_enabled: Optional[bool] = None
     diversity_enabled: Optional[bool] = None
     result_count: Optional[int] = None
@@ -70,6 +73,11 @@ class ScoreBreakdown(StrictModel):
     vec_distance: Optional[float]
     final_score: Optional[float] = None
     lexical_coverage: Optional[float] = None
+    semantic_concept_coverage: Optional[float] = None
+    semantic_vocabulary_score: Optional[float] = None
+    semantic_concepts_matched: list[str] = Field(default_factory=list)
+    semantic_lookup_match: bool = False
+    semantic_lookup_rank: Optional[int] = None
     exact_identifier_match: bool = False
     exact_identifier_rank: Optional[int] = None
 
