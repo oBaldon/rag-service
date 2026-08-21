@@ -232,3 +232,41 @@ top-level `query`.
 
 Os sinais semânticos são auxiliares de ranking e **não representam
 probabilidade, vigência ou confiança regulatória**.
+
+
+## Contexto regulatório curado por documento
+
+A partir do RAG-QUALITY-03, `document` pode incluir
+`regulatory_context`. Esse campo é informativo e **não altera o ranking**.
+
+Quando não há assertion aprovada:
+
+```json
+{
+  "regulatory_context": {
+    "document_id": "uuid",
+    "status": {
+      "status": "unknown",
+      "basis": "no_approved_curated_assertion",
+      "assertion_id": null,
+      "assertion_key": null,
+      "effective_from": null,
+      "valid_to": null,
+      "source_url": null,
+      "evidence_version_id": null,
+      "evidence_note": null,
+      "reviewed_by": null,
+      "reviewed_at": null
+    },
+    "relations": []
+  }
+}
+```
+
+`unknown` significa ausência de curadoria aprovada no InteliReg, não conclusão
+sobre vigência perante a autoridade regulatória.
+
+Somente `regulatory_status_assertions` e `regulatory_relations` com
+`review_status=approved` são expostos. Relações carregam `direction=outbound`
+quando o documento retornado é a origem canônica e `direction=inbound` quando é
+o alvo.

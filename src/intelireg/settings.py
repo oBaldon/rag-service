@@ -46,7 +46,7 @@ DATABASE_URL_ENV = "DATABASE_URL"
 PG_SCHEMA = os.getenv("PG_SCHEMA", "intelireg").strip() or "intelireg"
 
 # Pipeline e embedding: controlados pelo servidor
-PIPELINE_VERSION = os.getenv("PIPELINE_VERSION", "mvp-v2-semantic-v1").strip()
+PIPELINE_VERSION = os.getenv("PIPELINE_VERSION", "mvp-v2-semantic-v2").strip()
 EMBEDDING_MODEL_ID = os.getenv(
     "EMBEDDING_MODEL_ID",
     "intfloat/multilingual-e5-small@384",
@@ -96,6 +96,16 @@ SEMANTIC_PASSAGE_MAX_TERMS = int(
 )
 SEMANTIC_PASSAGE_MAX_PREFIX_CHARS = int(
     os.getenv("SEMANTIC_PASSAGE_MAX_PREFIX_CHARS", "700")
+)
+
+
+# Aplicabilidade regulatória curada (não altera ranking por padrão)
+REGULATORY_APPLICABILITY_ENABLED = _env_bool(
+    "REGULATORY_APPLICABILITY_ENABLED",
+    default=True,
+)
+REGULATORY_APPLICABILITY_MAX_RELATIONS_PER_DOCUMENT = int(
+    os.getenv("REGULATORY_APPLICABILITY_MAX_RELATIONS_PER_DOCUMENT", "20")
 )
 
 # Hugging Face / SentenceTransformers cache
@@ -252,6 +262,9 @@ def validate_runtime_configuration() -> list[str]:
         errors.append("SEMANTIC_PASSAGE_MAX_TERMS deve ser maior que zero")
     if SEMANTIC_PASSAGE_MAX_PREFIX_CHARS < 64:
         errors.append("SEMANTIC_PASSAGE_MAX_PREFIX_CHARS deve ser pelo menos 64")
+
+    if REGULATORY_APPLICABILITY_MAX_RELATIONS_PER_DOCUMENT < 1:
+        errors.append("REGULATORY_APPLICABILITY_MAX_RELATIONS_PER_DOCUMENT deve ser maior que zero")
 
     if RERANK_EXACT_IDENTIFIER_WEIGHT < 0:
         errors.append("RERANK_EXACT_IDENTIFIER_WEIGHT não pode ser negativo")

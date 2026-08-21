@@ -18,6 +18,8 @@ _REQUIRED_TABLES = (
     "index_profiles",
     "jobs",
     "rag_runs",
+    "regulatory_status_assertions",
+    "regulatory_relations",
 )
 
 
@@ -133,11 +135,16 @@ def check_readiness() -> tuple[bool, dict[str, dict[str, Any]]]:
                             ),
                         }
                     else:
+                        loaded_vocab = (
+                            expected_profile.semantic_vocabulary_version or "none"
+                        )
                         checks["index_profile"] = {
                             "status": "ready",
                             "detail": (
                                 f"pipeline={settings.PIPELINE_VERSION}; "
-                                f"vocab={profile_row[1] or 'none'}"
+                                f"indexed_vocab={profile_row[1] or 'none'}; "
+                                f"loaded_vocab={loaded_vocab}; "
+                                "embedding_profile=compatible"
                             ),
                         }
 
@@ -201,6 +208,50 @@ def check_readiness() -> tuple[bool, dict[str, dict[str, Any]]]:
                     ),
                 }
 
+        applicability_tables_ready = (
+            "regulatory_status_assertions" not in missing_tables
+            and "regulatory_relations" not in missing_tables
+        )
+        if settings.REGULATORY_APPLICABILITY_ENABLED and applicability_tables_ready:
+            with get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT
+                          COUNT(*) FILTER (WHERE review_status = 'approved')::bigint,
+                          COUNT(*) FILTER (WHERE review_status = 'draft')::bigint
+                        FROM regulatory_status_assertions
+                        """
+                    )
+                    status_row = cur.fetchone()
+                    cur.execute(
+                        """
+                        SELECT
+                          COUNT(*) FILTER (WHERE review_status = 'approved')::bigint,
+                          COUNT(*) FILTER (WHERE review_status = 'draft')::bigint
+                        FROM regulatory_relations
+                        """
+                    )
+                    relation_row = cur.fetchone()
+            checks["regulatory_applicability"] = {
+                "status": "ready",
+                "detail": (
+                    f"approved_statuses={int(status_row[0] or 0)}; "
+                    f"approved_relations={int(relation_row[0] or 0)}; "
+                    f"drafts={int(status_row[1] or 0) + int(relation_row[1] or 0)}"
+                ),
+            }
+        elif settings.REGULATORY_APPLICABILITY_ENABLED:
+            checks["regulatory_applicability"] = {
+                "status": "not_ready",
+                "detail": "tabelas de aplicabilidade ausentes",
+            }
+        else:
+            checks["regulatory_applicability"] = {
+                "status": "disabled",
+                "detail": "enriquecimento de aplicabilidade desabilitado",
+            }
+
     except Exception:
         logger.exception("Falha no readiness do PostgreSQL")
         ready = False
@@ -224,6 +275,10 @@ def check_readiness() -> tuple[bool, dict[str, dict[str, Any]]]:
             "index_queue",
             {"status": "unknown", "detail": "não verificado"},
         )
+        checks.setdefault(
+            "regulatory_applicability",
+            {"status": "unknown", "detail": "não verificado"},
+        )
 
     if settings.SEMANTIC_VOCABULARY_ENABLED:
         try:
@@ -233,6 +288,8 @@ def check_readiness() -> tuple[bool, dict[str, dict[str, Any]]]:
                 "detail": (
                     f"{vocabulary.vocabulary_version}; "
                     f"{len(vocabulary.concepts)} conceitos; "
+                    f"pending_domain_review="
+                    f"{sum(1 for c in vocabulary.concepts if c.review_status == 'pending_domain_review')}; "
                     f"sha256={vocabulary.content_hash[:12]}"
                 ),
             }

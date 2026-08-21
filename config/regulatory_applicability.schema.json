@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InteliReg Regulatory Applicability Import",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "batch_id",
+    "status_assertions",
+    "relations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "batch_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180
+    },
+    "description": {
+      "type": "string"
+    },
+    "status_assertions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assertion_key",
+          "document_id",
+          "status",
+          "asserted_by"
+        ],
+        "properties": {
+          "assertion_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "document_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "enum": [
+              "vigente",
+              "parcialmente_vigente",
+              "revogada",
+              "suspensa",
+              "substituida",
+              "sem_efeito"
+            ]
+          },
+          "effective_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "valid_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "review_status": {
+            "enum": [
+              "draft",
+              "approved",
+              "rejected"
+            ]
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "evidence_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "asserted_by": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewed_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "relation_key",
+          "source_document_id",
+          "target_document_id",
+          "relation_type",
+          "asserted_by"
+        ],
+        "properties": {
+          "relation_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180
+          },
+          "source_document_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target_document_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "relation_type": {
+            "enum": [
+              "altera",
+              "revoga",
+              "revoga_parcialmente",
+              "substitui",
+              "regulamenta",
+              "complementa",
+              "prorroga",
+              "corrige",
+              "referencia"
+            ]
+          },
+          "effective_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "scope_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "review_status": {
+            "enum": [
+              "draft",
+              "approved",
+              "rejected"
+            ]
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_version_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "evidence_note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "asserted_by": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reviewed_by": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

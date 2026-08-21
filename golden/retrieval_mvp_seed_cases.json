@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "vocabulary_version": "semantic-v2.0-mvp-seed",
+  "review_status": "pending_domain_review",
+  "description": "Seed de intenções MVP. Valida ativação semântica e saúde do retrieval; expected_documents será acrescentado após curadoria de especialistas.",
+  "cases": [
+    {
+      "id": "MVP-REG-01",
+      "process": "registro_medicamento",
+      "question": "Quais requisitos tratam do registro de medicamento novo?",
+      "expected_concepts": [
+        "registro_medicamento",
+        "medicamento_novo"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-REG-02",
+      "process": "registro_medicamento",
+      "question": "O que preciso analisar para registro de medicamento genérico e bioequivalência?",
+      "expected_concepts": [
+        "registro_medicamento",
+        "medicamento_generico",
+        "bioequivalencia"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-REG-03",
+      "process": "registro_medicamento",
+      "question": "Quais documentos tratam de IFA no registro de medicamentos?",
+      "expected_concepts": [
+        "insumo_farmaceutico_ativo",
+        "registro_medicamento"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-REG-04",
+      "process": "registro_medicamento",
+      "question": "Quais requisitos existem para bula de medicamento?",
+      "expected_concepts": [
+        "bula_medicamento"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-REG-05",
+      "process": "registro_medicamento",
+      "question": "Quais normas tratam de estudos de estabilidade de medicamentos?",
+      "expected_concepts": [
+        "estabilidade_medicamento"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-POST-01",
+      "process": "pos_registro",
+      "question": "Quais requisitos tratam de mudança de local de fabricação no pós-registro?",
+      "expected_concepts": [
+        "alteracao_pos_registro",
+        "mudanca_local_fabricacao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-POST-02",
+      "process": "pos_registro",
+      "question": "O que existe sobre alteração do processo de produção no pós-registro?",
+      "expected_concepts": [
+        "alteracao_pos_registro",
+        "mudanca_processo_producao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-POST-03",
+      "process": "pos_registro",
+      "question": "Quais documentos tratam de mudança de composição do medicamento?",
+      "expected_concepts": [
+        "mudanca_composicao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-POST-04",
+      "process": "pos_registro",
+      "question": "Como analisar uma mudança de método analítico no pós-registro?",
+      "expected_concepts": [
+        "mudanca_metodo_analitico",
+        "alteracao_pos_registro"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-POST-05",
+      "process": "pos_registro",
+      "question": "Quais requisitos tratam de mudança de embalagem e alteração do prazo de validade no pós-registro?",
+      "expected_concepts": [
+        "mudanca_embalagem",
+        "mudanca_prazo_validade"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-AFE-01",
+      "process": "afe",
+      "question": "Quais requisitos existem para AFE de uma empresa importadora de medicamentos?",
+      "expected_concepts": [
+        "afe",
+        "afe_importacao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-AFE-02",
+      "process": "afe",
+      "question": "Como funciona a atividade de distribuição na AFE?",
+      "expected_concepts": [
+        "afe",
+        "afe_distribuicao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-AFE-03",
+      "process": "afe",
+      "question": "Uma transportadora de medicamentos precisa de AFE para transporte?",
+      "expected_concepts": [
+        "afe",
+        "afe_transporte"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-AFE-04",
+      "process": "afe",
+      "question": "Quais regras tratam da ampliação de atividades da AFE?",
+      "expected_concepts": [
+        "afe",
+        "atividade_autorizada"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-AFE-05",
+      "process": "afe",
+      "question": "Quais requisitos existem para AFE para fabricação?",
+      "expected_concepts": [
+        "afe",
+        "afe_fabricacao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CBPF-01",
+      "process": "cbpf",
+      "question": "Quais requisitos tratam do CBPF de fabricante de medicamentos?",
+      "expected_concepts": [
+        "cbpf"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CBPF-02",
+      "process": "cbpf",
+      "question": "Quais normas tratam de Boas Práticas de Fabricação de medicamentos?",
+      "expected_concepts": [
+        "boas_praticas_fabricacao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CBPF-03",
+      "process": "cbpf",
+      "question": "O que existe sobre inspeção de boas práticas para certificação de fabricante?",
+      "expected_concepts": [
+        "inspecao_sanitaria"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CBPF-04",
+      "process": "cbpf",
+      "question": "Como o CBPF se relaciona com a unidade fabril?",
+      "expected_concepts": [
+        "cbpf",
+        "unidade_fabril"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CBPF-05",
+      "process": "cbpf",
+      "question": "Quais requisitos tratam de linha de produção em Certificação de Boas Práticas de Fabricação?",
+      "expected_concepts": [
+        "linha_producao",
+        "cbpf"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CLIN-01",
+      "process": "pesquisa_clinica",
+      "question": "Quais documentos compõem um DDCM em pesquisa clínica?",
+      "expected_concepts": [
+        "ddcm",
+        "pesquisa_clinica"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CLIN-02",
+      "process": "pesquisa_clinica",
+      "question": "Quais requisitos tratam do DEEC de um ensaio clínico?",
+      "expected_concepts": [
+        "deec",
+        "ensaio_clinico"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CLIN-03",
+      "process": "pesquisa_clinica",
+      "question": "Quais requisitos de qualidade existem para produto sob investigação?",
+      "expected_concepts": [
+        "produto_sob_investigacao"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CLIN-04",
+      "process": "pesquisa_clinica",
+      "question": "Como é tratada uma emenda substancial ao protocolo clínico?",
+      "expected_concepts": [
+        "emenda_substancial_protocolo",
+        "protocolo_ensaio_clinico"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    },
+    {
+      "id": "MVP-CLIN-05",
+      "process": "pesquisa_clinica",
+      "question": "Quais normas e guias tratam de Boas Práticas Clínicas em ensaios clínicos?",
+      "expected_concepts": [
+        "boas_praticas_clinicas",
+        "ensaio_clinico"
+      ],
+      "expected_documents": [],
+      "max_rank": 5
+    }
+  ]
+}

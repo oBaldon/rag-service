@@ -172,7 +172,7 @@ identificadores exatos, conteúdo lexical, consulta conceitual e paráfrase.
 
 ## Pipeline semântico / vocabulário controlado
 
-A evolução `mvp-v2-semantic-v1` adiciona vocabulário semântico regulatório,
+A evolução `mvp-v2-semantic-v2` adiciona vocabulário semântico regulatório,
 expansão controlada da query e enriquecimento do input vetorial.
 
 Validar o vocabulário:
@@ -184,17 +184,17 @@ PYTHONPATH=src python -m intelireg.cli.semantic_vocabulary
 Preparar reindexação sem recrawl:
 
 ```bash
-PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v1
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v2
 ```
 
 Enfileirar de fato:
 
 ```bash
-PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v1   --execute
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v2   --execute
 ```
 
 Depois que o worker concluir todos os jobs, configure a API com
-`PIPELINE_VERSION=mvp-v2-semantic-v1` e rode novamente T01–T09.
+`PIPELINE_VERSION=mvp-v2-semantic-v2` e rode novamente T01–T09.
 
 Consulte `docs/semantic_vocabulary.md`.
 
@@ -207,7 +207,7 @@ Antes de executar um lote, use o dry-run:
 
 ```bash
 PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all \
-  --pipeline-version mvp-v2-semantic-v1
+  --pipeline-version mvp-v2-semantic-v2
 ```
 
 Observe `missing_pipeline`, `already_active`, `eligible_to_enqueue` e
@@ -221,3 +221,42 @@ PYTHONPATH=src python golden/check_reindex_idempotency.py
 ```
 
 Consulte `docs/reindex_idempotency.md`.
+
+
+## Vocabulário semântico
+
+```bash
+PYTHONPATH=src python golden/check_semantic_vocabulary_quality.py
+```
+
+Valida cobertura de golden cases por conceito e comportamento positivo/negativo do vocabulário governado.
+
+
+## Seed semântico dos cinco processos MVP — RAG-QUALITY-04A/B
+
+O catálogo `semantic-v2.0-mvp-seed` contém 60 conceitos pendentes de revisão de
+domínio, com prioridade, hierarquia e fontes terminológicas oficiais.
+
+Validação offline do vocabulário:
+
+```bash
+PYTHONPATH=src python golden/check_semantic_vocabulary_quality.py
+```
+
+Para detalhar os 164 casos:
+
+```bash
+PYTHONPATH=src python golden/check_semantic_vocabulary_quality.py --verbose
+```
+
+Após indexar `mvp-v2-semantic-v2`, valide as 25 intenções do MVP:
+
+```bash
+python golden/check_mvp_retrieval_seed.py   --base-url http://127.0.0.1:8088
+```
+
+Essa suíte valida conceitos ativados e saúde do retrieval. Os campos
+`expected_documents` permanecem vazios até curadoria de especialistas; portanto
+ela não deve ser interpretada como homologação de aplicabilidade normativa.
+
+Consulte `docs/rag_quality_04_mvp_semantic_seed.md`.

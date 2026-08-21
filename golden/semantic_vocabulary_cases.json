@@ -1,0 +1,2039 @@
+{
+  "schema_version": 2,
+  "vocabulary_version": "semantic-v2.0-mvp-seed",
+  "description": "Golden semântico do seed MVP. P0 exige pelo menos 2 positivos + 1 negativo; P1 exige 1 positivo + 1 negativo.",
+  "cases": [
+    {
+      "id": "SV-ICH-HARMONIZACAO-01",
+      "concept_id": "ich_harmonizacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de ICH?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "International Council for Harmonisation"
+      ]
+    },
+    {
+      "id": "SV-ICH-HARMONIZACAO-02",
+      "concept_id": "ich_harmonizacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre International Council for Harmonisation.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "ICH"
+      ]
+    },
+    {
+      "id": "SV-ICH-HARMONIZACAO-N01",
+      "concept_id": "ich_harmonizacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-REGULARIZACAO-PRODUTO-01",
+      "concept_id": "regularizacao_produto",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de regularização de medicamento?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "regularização sanitária"
+      ]
+    },
+    {
+      "id": "SV-REGULARIZACAO-PRODUTO-N01",
+      "concept_id": "regularizacao_produto",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-PETICIONAMENTO-REGULATORIO-01",
+      "concept_id": "peticionamento_regulatorio",
+      "priority": "P1",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de peticionamento regulatório?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "peticionamento na Anvisa"
+      ]
+    },
+    {
+      "id": "SV-PETICIONAMENTO-REGULATORIO-N01",
+      "concept_id": "peticionamento_regulatorio",
+      "priority": "P1",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-DOSSIE-REGULATORIO-01",
+      "concept_id": "dossie_regulatorio",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de dossiê regulatório?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "dossiê técnico"
+      ]
+    },
+    {
+      "id": "SV-DOSSIE-REGULATORIO-N01",
+      "concept_id": "dossie_regulatorio",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-EXIGENCIA-REGULATORIA-01",
+      "concept_id": "exigencia_regulatoria",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "afe",
+        "cbpf",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de exigência regulatória?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "exigência técnica"
+      ]
+    },
+    {
+      "id": "SV-EXIGENCIA-REGULATORIA-N01",
+      "concept_id": "exigencia_regulatoria",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "afe",
+        "cbpf",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-VIGENCIA-NORMATIVA-01",
+      "concept_id": "vigencia_normativa",
+      "priority": "P1",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de vigência da norma?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "situação de vigência"
+      ]
+    },
+    {
+      "id": "SV-VIGENCIA-NORMATIVA-N01",
+      "concept_id": "vigencia_normativa",
+      "priority": "P1",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-REVOGACAO-NORMATIVA-01",
+      "concept_id": "revogacao_normativa",
+      "priority": "P1",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de norma revogada?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "revogada por"
+      ]
+    },
+    {
+      "id": "SV-REVOGACAO-NORMATIVA-N01",
+      "concept_id": "revogacao_normativa",
+      "priority": "P1",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-RISCO-SANITARIO-01",
+      "concept_id": "risco_sanitario",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "afe",
+        "cbpf",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "query": "Quais normas e orientações tratam de risco sanitário?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "abordagem baseada em risco"
+      ]
+    },
+    {
+      "id": "SV-RISCO-SANITARIO-N01",
+      "concept_id": "risco_sanitario",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "afe",
+        "cbpf",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-SEGURANCA-EFICACIA-01",
+      "concept_id": "seguranca_eficacia",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de segurança e eficácia?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "segurança do medicamento"
+      ]
+    },
+    {
+      "id": "SV-SEGURANCA-EFICACIA-02",
+      "concept_id": "seguranca_eficacia",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre eficácia e segurança.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "segurança do medicamento"
+      ]
+    },
+    {
+      "id": "SV-SEGURANCA-EFICACIA-N01",
+      "concept_id": "seguranca_eficacia",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-QUALIDADE-FARMACEUTICA-01",
+      "concept_id": "qualidade_farmaceutica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de qualidade farmacêutica?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "qualidade do medicamento"
+      ]
+    },
+    {
+      "id": "SV-QUALIDADE-FARMACEUTICA-02",
+      "concept_id": "qualidade_farmaceutica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre tecnologia farmacêutica.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "qualidade do medicamento"
+      ]
+    },
+    {
+      "id": "SV-QUALIDADE-FARMACEUTICA-N01",
+      "concept_id": "qualidade_farmaceutica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais documentos compõem um DEEC para um ensaio clínico?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-REGISTRO-MEDICAMENTO-01",
+      "concept_id": "registro_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de registro de medicamento?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "regularização de medicamento"
+      ]
+    },
+    {
+      "id": "SV-REGISTRO-MEDICAMENTO-02",
+      "concept_id": "registro_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre registro de medicamentos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "regularização de medicamento"
+      ]
+    },
+    {
+      "id": "SV-REGISTRO-MEDICAMENTO-N01",
+      "concept_id": "registro_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-NOVO-01",
+      "concept_id": "medicamento_novo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento novo?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "nova molécula"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-NOVO-02",
+      "concept_id": "medicamento_novo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre medicamentos novos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "nova molécula"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-NOVO-N01",
+      "concept_id": "medicamento_novo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-INOVADOR-01",
+      "concept_id": "medicamento_inovador",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento inovador?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "nova associação"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-INOVADOR-02",
+      "concept_id": "medicamento_inovador",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre medicamentos inovadores.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "nova associação"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-INOVADOR-N01",
+      "concept_id": "medicamento_inovador",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-GENERICO-01",
+      "concept_id": "medicamento_generico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento genérico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento de referência"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-GENERICO-02",
+      "concept_id": "medicamento_generico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre medicamentos genéricos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento de referência"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-GENERICO-N01",
+      "concept_id": "medicamento_generico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-SIMILAR-01",
+      "concept_id": "medicamento_similar",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento similar?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento de referência"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-SIMILAR-02",
+      "concept_id": "medicamento_similar",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre medicamentos similares.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento de referência"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-SIMILAR-N01",
+      "concept_id": "medicamento_similar",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-REFERENCIA-01",
+      "concept_id": "medicamento_referencia",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento de referência?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento referência"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-REFERENCIA-N01",
+      "concept_id": "medicamento_referencia",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-BIOLOGICO-01",
+      "concept_id": "medicamento_biologico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento biológico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "produto biológico"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-BIOLOGICO-02",
+      "concept_id": "medicamento_biologico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre medicamentos biológicos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento biológico"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-BIOLOGICO-N01",
+      "concept_id": "medicamento_biologico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MEDICAMENTO-BIOSSIMILAR-01",
+      "concept_id": "medicamento_biossimilar",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de medicamento biossimilar?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "produto biológico comparador"
+      ]
+    },
+    {
+      "id": "SV-MEDICAMENTO-BIOSSIMILAR-N01",
+      "concept_id": "medicamento_biossimilar",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-INSUMO-FARMACEUTICO-ATIVO-01",
+      "concept_id": "insumo_farmaceutico_ativo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "cbpf"
+      ],
+      "query": "Quais normas e orientações tratam de insumo farmacêutico ativo?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "IFA"
+      ]
+    },
+    {
+      "id": "SV-INSUMO-FARMACEUTICO-ATIVO-02",
+      "concept_id": "insumo_farmaceutico_ativo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "cbpf"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre insumos farmacêuticos ativos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "IFA"
+      ]
+    },
+    {
+      "id": "SV-INSUMO-FARMACEUTICO-ATIVO-N01",
+      "concept_id": "insumo_farmaceutico_ativo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "cbpf"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-EQUIVALENCIA-FARMACEUTICA-01",
+      "concept_id": "equivalencia_farmaceutica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de equivalência farmacêutica?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "comparação farmacêutica"
+      ]
+    },
+    {
+      "id": "SV-EQUIVALENCIA-FARMACEUTICA-02",
+      "concept_id": "equivalencia_farmaceutica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre estudo de equivalência farmacêutica.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "comparação farmacêutica"
+      ]
+    },
+    {
+      "id": "SV-EQUIVALENCIA-FARMACEUTICA-N01",
+      "concept_id": "equivalencia_farmaceutica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-BIOEQUIVALENCIA-01",
+      "concept_id": "bioequivalencia",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de bioequivalência?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "biodisponibilidade relativa"
+      ]
+    },
+    {
+      "id": "SV-BIOEQUIVALENCIA-02",
+      "concept_id": "bioequivalencia",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre estudo de bioequivalência.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "biodisponibilidade relativa"
+      ]
+    },
+    {
+      "id": "SV-BIOEQUIVALENCIA-N01",
+      "concept_id": "bioequivalencia",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-ESTABILIDADE-MEDICAMENTO-01",
+      "concept_id": "estabilidade_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de estudo de estabilidade?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "estabilidade acelerada"
+      ]
+    },
+    {
+      "id": "SV-ESTABILIDADE-MEDICAMENTO-02",
+      "concept_id": "estabilidade_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre estudos de estabilidade.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "estabilidade acelerada"
+      ]
+    },
+    {
+      "id": "SV-ESTABILIDADE-MEDICAMENTO-N01",
+      "concept_id": "estabilidade_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-METODO-ANALITICO-01",
+      "concept_id": "metodo_analitico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de método analítico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "método de análise"
+      ]
+    },
+    {
+      "id": "SV-METODO-ANALITICO-02",
+      "concept_id": "metodo_analitico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre métodos analíticos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "método de análise"
+      ]
+    },
+    {
+      "id": "SV-METODO-ANALITICO-N01",
+      "concept_id": "metodo_analitico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-VALIDACAO-METODO-ANALITICO-01",
+      "concept_id": "validacao_metodo_analitico",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de validação de método analítico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "validação de procedimento analítico"
+      ]
+    },
+    {
+      "id": "SV-VALIDACAO-METODO-ANALITICO-N01",
+      "concept_id": "validacao_metodo_analitico",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-BULA-MEDICAMENTO-01",
+      "concept_id": "bula_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de bula?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "informações de bula"
+      ]
+    },
+    {
+      "id": "SV-BULA-MEDICAMENTO-02",
+      "concept_id": "bula_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre bula de medicamento.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "informações de bula"
+      ]
+    },
+    {
+      "id": "SV-BULA-MEDICAMENTO-N01",
+      "concept_id": "bula_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-ROTULAGEM-MEDICAMENTO-01",
+      "concept_id": "rotulagem_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de rotulagem de medicamento?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "dizeres de rótulo"
+      ]
+    },
+    {
+      "id": "SV-ROTULAGEM-MEDICAMENTO-02",
+      "concept_id": "rotulagem_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre rotulagem do medicamento.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "dizeres de rótulo"
+      ]
+    },
+    {
+      "id": "SV-ROTULAGEM-MEDICAMENTO-N01",
+      "concept_id": "rotulagem_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-EMBALAGEM-ACONDICIONAMENTO-01",
+      "concept_id": "embalagem_acondicionamento",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de embalagem do medicamento?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "embalagem primária"
+      ]
+    },
+    {
+      "id": "SV-EMBALAGEM-ACONDICIONAMENTO-N01",
+      "concept_id": "embalagem_acondicionamento",
+      "priority": "P1",
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais atividades devem constar na AFE de uma transportadora de medicamentos?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-ALTERACAO-POS-REGISTRO-01",
+      "concept_id": "alteracao_pos_registro",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de alteração pós-registro?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "mudança pós-registro"
+      ]
+    },
+    {
+      "id": "SV-ALTERACAO-POS-REGISTRO-02",
+      "concept_id": "alteracao_pos_registro",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre mudança pós-registro.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "alteração de registro de medicamento"
+      ]
+    },
+    {
+      "id": "SV-ALTERACAO-POS-REGISTRO-N01",
+      "concept_id": "alteracao_pos_registro",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-LOCAL-FABRICACAO-01",
+      "concept_id": "mudanca_local_fabricacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de local de fabricação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "site fabril"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-LOCAL-FABRICACAO-02",
+      "concept_id": "mudanca_local_fabricacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração de local de fabricação.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "site fabril"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-LOCAL-FABRICACAO-N01",
+      "concept_id": "mudanca_local_fabricacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-PROCESSO-PRODUCAO-01",
+      "concept_id": "mudanca_processo_producao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de processo de produção?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "processo produtivo"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-PROCESSO-PRODUCAO-02",
+      "concept_id": "mudanca_processo_producao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração do processo de produção.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "processo produtivo"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-PROCESSO-PRODUCAO-N01",
+      "concept_id": "mudanca_processo_producao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-COMPOSICAO-01",
+      "concept_id": "mudanca_composicao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de composição?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "composição do medicamento"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-COMPOSICAO-02",
+      "concept_id": "mudanca_composicao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração de composição.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "composição do medicamento"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-COMPOSICAO-N01",
+      "concept_id": "mudanca_composicao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-EXCIPIENTE-01",
+      "concept_id": "mudanca_excipiente",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de alteração de excipiente?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "alteração pós-registro de excipiente"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-EXCIPIENTE-N01",
+      "concept_id": "mudanca_excipiente",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-ESPECIFICACAO-01",
+      "concept_id": "mudanca_especificacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de especificação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "especificação de qualidade"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-ESPECIFICACAO-02",
+      "concept_id": "mudanca_especificacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração de especificação.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "especificação de qualidade"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-ESPECIFICACAO-N01",
+      "concept_id": "mudanca_especificacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-METODO-ANALITICO-01",
+      "concept_id": "mudanca_metodo_analitico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de método analítico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "método analítico pós-registro"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-METODO-ANALITICO-02",
+      "concept_id": "mudanca_metodo_analitico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração de método analítico.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "método analítico pós-registro"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-METODO-ANALITICO-N01",
+      "concept_id": "mudanca_metodo_analitico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-EMBALAGEM-01",
+      "concept_id": "mudanca_embalagem",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de embalagem?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "embalagem primária"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-EMBALAGEM-02",
+      "concept_id": "mudanca_embalagem",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração de embalagem.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "embalagem primária"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-EMBALAGEM-N01",
+      "concept_id": "mudanca_embalagem",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-PRAZO-VALIDADE-01",
+      "concept_id": "mudanca_prazo_validade",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de prazo de validade?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "alteração pós-registro de validade"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-PRAZO-VALIDADE-02",
+      "concept_id": "mudanca_prazo_validade",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre alteração do prazo de validade.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "alteração pós-registro de validade"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-PRAZO-VALIDADE-N01",
+      "concept_id": "mudanca_prazo_validade",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MUDANCA-TAMANHO-LOTE-01",
+      "concept_id": "mudanca_tamanho_lote",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de mudança de tamanho de lote?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "escala de produção"
+      ]
+    },
+    {
+      "id": "SV-MUDANCA-TAMANHO-LOTE-N01",
+      "concept_id": "mudanca_tamanho_lote",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-CANCELAMENTO-REGISTRO-01",
+      "concept_id": "cancelamento_registro",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro",
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de cancelamento de registro?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "cancelamento de registro de medicamento"
+      ]
+    },
+    {
+      "id": "SV-CANCELAMENTO-REGISTRO-N01",
+      "concept_id": "cancelamento_registro",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro",
+        "registro_medicamento"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-IMPLEMENTACAO-IMEDIATA-01",
+      "concept_id": "implementacao_imediata",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de implementação imediata?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "implementação imediata pós-registro"
+      ]
+    },
+    {
+      "id": "SV-IMPLEMENTACAO-IMEDIATA-N01",
+      "concept_id": "implementacao_imediata",
+      "priority": "P1",
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "query": "Quais documentos integram um DDCM e um DEEC para pesquisa clínica?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-AFE-01",
+      "concept_id": "afe",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de AFE?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "Autorização de Funcionamento de Empresa"
+      ]
+    },
+    {
+      "id": "SV-AFE-02",
+      "concept_id": "afe",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre Autorização de Funcionamento.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "AFE"
+      ]
+    },
+    {
+      "id": "SV-AFE-N01",
+      "concept_id": "afe",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-ATIVIDADE-AUTORIZADA-01",
+      "concept_id": "atividade_autorizada",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de atividade autorizada na AFE?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "ampliação de atividades"
+      ]
+    },
+    {
+      "id": "SV-ATIVIDADE-AUTORIZADA-02",
+      "concept_id": "atividade_autorizada",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre atividade autorizada pela AFE.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "ampliação de atividades"
+      ]
+    },
+    {
+      "id": "SV-ATIVIDADE-AUTORIZADA-N01",
+      "concept_id": "atividade_autorizada",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-AFE-FABRICACAO-01",
+      "concept_id": "afe_fabricacao",
+      "priority": "P1",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de AFE para fabricação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "fabricação de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-FABRICACAO-N01",
+      "concept_id": "afe_fabricacao",
+      "priority": "P1",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-AFE-IMPORTACAO-01",
+      "concept_id": "afe_importacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de AFE para importação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "importação de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-IMPORTACAO-02",
+      "concept_id": "afe_importacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre atividade de importação na AFE.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "importação de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-IMPORTACAO-N01",
+      "concept_id": "afe_importacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-AFE-DISTRIBUICAO-01",
+      "concept_id": "afe_distribuicao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de AFE para distribuição?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "distribuição de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-DISTRIBUICAO-02",
+      "concept_id": "afe_distribuicao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre atividade de distribuição na AFE.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "distribuição de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-DISTRIBUICAO-N01",
+      "concept_id": "afe_distribuicao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-AFE-ARMAZENAMENTO-01",
+      "concept_id": "afe_armazenamento",
+      "priority": "P1",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de AFE para armazenamento?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "armazenamento de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-ARMAZENAMENTO-N01",
+      "concept_id": "afe_armazenamento",
+      "priority": "P1",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-AFE-TRANSPORTE-01",
+      "concept_id": "afe_transporte",
+      "priority": "P1",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de AFE para transporte?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "transporte de medicamentos"
+      ]
+    },
+    {
+      "id": "SV-AFE-TRANSPORTE-N01",
+      "concept_id": "afe_transporte",
+      "priority": "P1",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Quais mudanças pós-registro tratam de prazo de validade e embalagem?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-CBPF-01",
+      "concept_id": "cbpf",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de CBPF?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "Boas Práticas de Fabricação"
+      ]
+    },
+    {
+      "id": "SV-CBPF-02",
+      "concept_id": "cbpf",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre Certificado de Boas Práticas de Fabricação.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "CBPF"
+      ]
+    },
+    {
+      "id": "SV-CBPF-N01",
+      "concept_id": "cbpf",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Como registrar um medicamento genérico e avaliar bioequivalência?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-BOAS-PRATICAS-FABRICACAO-01",
+      "concept_id": "boas_praticas_fabricacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de Boas Práticas de Fabricação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "BPF"
+      ]
+    },
+    {
+      "id": "SV-BOAS-PRATICAS-FABRICACAO-02",
+      "concept_id": "boas_praticas_fabricacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre requisitos de boas práticas de fabricação.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "BPF"
+      ]
+    },
+    {
+      "id": "SV-BOAS-PRATICAS-FABRICACAO-N01",
+      "concept_id": "boas_praticas_fabricacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Como registrar um medicamento genérico e avaliar bioequivalência?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-INSPECAO-SANITARIA-01",
+      "concept_id": "inspecao_sanitaria",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "afe"
+      ],
+      "query": "Quais normas e orientações tratam de inspeção sanitária?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "inspeção de BPF"
+      ]
+    },
+    {
+      "id": "SV-INSPECAO-SANITARIA-02",
+      "concept_id": "inspecao_sanitaria",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "afe"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre inspeção de boas práticas.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "inspeção de BPF"
+      ]
+    },
+    {
+      "id": "SV-INSPECAO-SANITARIA-N01",
+      "concept_id": "inspecao_sanitaria",
+      "priority": "P0",
+      "regulatory_processes": [
+        "cbpf",
+        "afe"
+      ],
+      "query": "Como registrar um medicamento genérico e avaliar bioequivalência?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-UNIDADE-FABRIL-01",
+      "concept_id": "unidade_fabril",
+      "priority": "P1",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Quais normas e orientações tratam de unidade fabril?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "local de fabricação"
+      ]
+    },
+    {
+      "id": "SV-UNIDADE-FABRIL-N01",
+      "concept_id": "unidade_fabril",
+      "priority": "P1",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "query": "Como registrar um medicamento genérico e avaliar bioequivalência?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-LINHA-PRODUCAO-01",
+      "concept_id": "linha_producao",
+      "priority": "P1",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Quais normas e orientações tratam de linha de produção?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "linha de fabricação"
+      ]
+    },
+    {
+      "id": "SV-LINHA-PRODUCAO-N01",
+      "concept_id": "linha_producao",
+      "priority": "P1",
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "query": "Como registrar um medicamento genérico e avaliar bioequivalência?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-PESQUISA-CLINICA-01",
+      "concept_id": "pesquisa_clinica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de pesquisa clínica?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "desenvolvimento clínico"
+      ]
+    },
+    {
+      "id": "SV-PESQUISA-CLINICA-02",
+      "concept_id": "pesquisa_clinica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre pesquisas clínicas.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "desenvolvimento clínico"
+      ]
+    },
+    {
+      "id": "SV-PESQUISA-CLINICA-N01",
+      "concept_id": "pesquisa_clinica",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-ENSAIO-CLINICO-01",
+      "concept_id": "ensaio_clinico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de ensaio clínico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "protocolo clínico"
+      ]
+    },
+    {
+      "id": "SV-ENSAIO-CLINICO-02",
+      "concept_id": "ensaio_clinico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre ensaios clínicos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "protocolo clínico"
+      ]
+    },
+    {
+      "id": "SV-ENSAIO-CLINICO-N01",
+      "concept_id": "ensaio_clinico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-DDCM-01",
+      "concept_id": "ddcm",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de DDCM?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "desenvolvimento clínico de medicamento"
+      ]
+    },
+    {
+      "id": "SV-DDCM-02",
+      "concept_id": "ddcm",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre Dossiê de Desenvolvimento Clínico de Medicamento.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "DDCM"
+      ]
+    },
+    {
+      "id": "SV-DDCM-N01",
+      "concept_id": "ddcm",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-DEEC-01",
+      "concept_id": "deec",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de DEEC?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "dossiê específico do ensaio clínico"
+      ]
+    },
+    {
+      "id": "SV-DEEC-02",
+      "concept_id": "deec",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre Dossiê Específico de Ensaio Clínico.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "DEEC"
+      ]
+    },
+    {
+      "id": "SV-DEEC-N01",
+      "concept_id": "deec",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-PRODUTO-SOB-INVESTIGACAO-01",
+      "concept_id": "produto_sob_investigacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de produto sob investigação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "medicamento experimental"
+      ]
+    },
+    {
+      "id": "SV-PRODUTO-SOB-INVESTIGACAO-02",
+      "concept_id": "produto_sob_investigacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre medicamento sob investigação.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "produto sob investigação"
+      ]
+    },
+    {
+      "id": "SV-PRODUTO-SOB-INVESTIGACAO-N01",
+      "concept_id": "produto_sob_investigacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-PROTOCOLO-ENSAIO-CLINICO-01",
+      "concept_id": "protocolo_ensaio_clinico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de protocolo de ensaio clínico?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "protocolo do ensaio"
+      ]
+    },
+    {
+      "id": "SV-PROTOCOLO-ENSAIO-CLINICO-02",
+      "concept_id": "protocolo_ensaio_clinico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre protocolo de estudo clínico.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "protocolo do ensaio"
+      ]
+    },
+    {
+      "id": "SV-PROTOCOLO-ENSAIO-CLINICO-N01",
+      "concept_id": "protocolo_ensaio_clinico",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-EMENDA-SUBSTANCIAL-PROTOCOLO-01",
+      "concept_id": "emenda_substancial_protocolo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de emenda substancial ao protocolo?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "alteração substancial do protocolo clínico"
+      ]
+    },
+    {
+      "id": "SV-EMENDA-SUBSTANCIAL-PROTOCOLO-02",
+      "concept_id": "emenda_substancial_protocolo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre emenda substancial de protocolo.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "alteração substancial do protocolo clínico"
+      ]
+    },
+    {
+      "id": "SV-EMENDA-SUBSTANCIAL-PROTOCOLO-N01",
+      "concept_id": "emenda_substancial_protocolo",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-MODIFICACAO-SUBSTANCIAL-PRODUTO-INVESTIGACAO-01",
+      "concept_id": "modificacao_substancial_produto_investigacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de modificação substancial ao produto sob investigação?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "modificação substancial do produto investigacional"
+      ]
+    },
+    {
+      "id": "SV-MODIFICACAO-SUBSTANCIAL-PRODUTO-INVESTIGACAO-02",
+      "concept_id": "modificacao_substancial_produto_investigacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre modificação substancial do produto sob investigação.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "modificação substancial do produto investigacional"
+      ]
+    },
+    {
+      "id": "SV-MODIFICACAO-SUBSTANCIAL-PRODUTO-INVESTIGACAO-N01",
+      "concept_id": "modificacao_substancial_produto_investigacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-BOAS-PRATICAS-CLINICAS-01",
+      "concept_id": "boas_praticas_clinicas",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais normas e orientações tratam de Boas Práticas Clínicas?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "BPC"
+      ]
+    },
+    {
+      "id": "SV-BOAS-PRATICAS-CLINICAS-02",
+      "concept_id": "boas_praticas_clinicas",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Preciso localizar requisitos regulatórios sobre BPC em ensaios clínicos.",
+      "expected_match": true,
+      "expected_added_terms": [
+        "boas práticas clínicas ICH"
+      ]
+    },
+    {
+      "id": "SV-BOAS-PRATICAS-CLINICAS-N01",
+      "concept_id": "boas_praticas_clinicas",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais mudanças pós-registro tratam de local de fabricação e tamanho de lote?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-ICH-T08-REGRESSION",
+      "concept_id": "ich_harmonizacao",
+      "priority": "P0",
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "query": "Quais atos regulatórios disponíveis tratam das atribuições de representantes brasileiros em fóruns internacionais de harmonização farmacêutica?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "ICH"
+      ]
+    },
+    {
+      "id": "SV-AFE-T07-REGRESSION",
+      "concept_id": "afe",
+      "priority": "P0",
+      "regulatory_processes": [
+        "afe"
+      ],
+      "query": "Onde as normas disponíveis definem autorização para funcionamento de estabelecimentos sujeitos à vigilância sanitária?",
+      "expected_match": true,
+      "expected_added_terms": [
+        "AFE"
+      ]
+    },
+    {
+      "id": "SV-BPC-AMBIG-N01",
+      "concept_id": "boas_praticas_clinicas",
+      "priority": "P0",
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "query": "Quais regras tratam do Benefício de Prestação Continuada (BPC)?",
+      "expected_match": false
+    },
+    {
+      "id": "SV-REGISTRO-AMBIG-N01",
+      "concept_id": "registro_medicamento",
+      "priority": "P0",
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "query": "Como registrar um novo usuário no portal?",
+      "expected_match": false
+    }
+  ]
+}

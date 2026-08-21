@@ -59,6 +59,10 @@ regulatória.
   "id": "ich_harmonizacao",
   "label": "ICH e harmonização farmacêutica internacional",
   "enabled": true,
+  "priority": "P0",
+  "parent_concepts": [],
+  "related_concepts": [],
+  "source_refs": ["ANVISA-REG-05"],
   "aliases": [
     "ICH",
     "harmonização farmacêutica"
@@ -173,7 +177,7 @@ reindexação.
 O perfil semântico inicial utiliza:
 
 ```dotenv
-PIPELINE_VERSION=mvp-v2-semantic-v1
+PIPELINE_VERSION=mvp-v2-semantic-v2
 ```
 
 Recomendação:
@@ -214,13 +218,13 @@ para recriar chunks/embeddings no pipeline novo.
 Dry-run:
 
 ```bash
-PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v1
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v2
 ```
 
 Enfileirar:
 
 ```bash
-PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v1   --execute
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all   --pipeline-version mvp-v2-semantic-v2   --execute
 ```
 
 Depois execute o worker até consumir a fila. É possível preparar esse pipeline
@@ -246,3 +250,8 @@ Cada resultado também pode trazer:
 - `semantic_lookup_rank`.
 
 Esses sinais são diagnósticos de retrieval, não confiança regulatória.
+
+
+## Schema v3, catálogo MVP e governança
+
+A governança formal por conceito está descrita em `docs/semantic_vocabulary_governance.md`. O seed dos cinco processos do MVP está documentado em `docs/rag_quality_04_mvp_semantic_seed.md`. Metadados de governança, prioridade, hierarquia e fontes não entram no hash do perfil vetorial; `aliases` e `embedding_terms` continuam entrando.

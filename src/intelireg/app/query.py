@@ -148,6 +148,18 @@ def run_query(
                 "exact_identifier_match": result["scores"].get("exact_identifier_match", False),
                 "semantic_concepts_matched": result["scores"].get("semantic_concepts_matched") or [],
                 "semantic_lookup_match": result["scores"].get("semantic_lookup_match", False),
+                "regulatory_status": (
+                    result.get("document", {})
+                    .get("regulatory_context", {})
+                    .get("status", {})
+                    .get("status")
+                ),
+                "regulatory_status_basis": (
+                    result.get("document", {})
+                    .get("regulatory_context", {})
+                    .get("status", {})
+                    .get("basis")
+                ),
                 "chunk_id": result["chunk"]["chunk_id"],
                 "version_id": result["chunk"]["version_id"],
                 "chunk_index": result["chunk"]["chunk_index"],

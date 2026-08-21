@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, Literal, Optional
 from uuid import UUID
 
@@ -60,6 +60,7 @@ class RetrievalConfig(StrictModel):
     semantic_expansion: Optional[Dict[str, Any]] = None
     semantic_passage_enrichment_enabled: Optional[bool] = None
     semantic_concept_lookup_enabled: Optional[bool] = None
+    regulatory_applicability_enabled: Optional[bool] = None
     rerank_enabled: Optional[bool] = None
     diversity_enabled: Optional[bool] = None
     result_count: Optional[int] = None
@@ -90,6 +91,44 @@ class ChunkEvidence(StrictModel):
     text: str
 
 
+
+class RegulatoryStatusMetadata(StrictModel):
+    status: str
+    basis: str
+    assertion_id: Optional[UUID] = None
+    assertion_key: Optional[str] = None
+    effective_from: Optional[date] = None
+    valid_to: Optional[date] = None
+    source_url: Optional[str] = None
+    evidence_version_id: Optional[UUID] = None
+    evidence_note: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+
+
+class RegulatoryRelationMetadata(StrictModel):
+    relation_id: UUID
+    relation_key: str
+    relation_type: str
+    direction: Literal["outbound", "inbound"]
+    related_document_id: UUID
+    related_document_title: str
+    effective_date: Optional[date] = None
+    scope_note: Optional[str] = None
+    source_url: Optional[str] = None
+    evidence_version_id: Optional[UUID] = None
+    evidence_note: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    basis: str
+
+
+class RegulatoryContextMetadata(StrictModel):
+    document_id: UUID
+    status: RegulatoryStatusMetadata
+    relations: list[RegulatoryRelationMetadata] = Field(default_factory=list)
+
+
 class DocumentMetadata(StrictModel):
     document_id: UUID
     title: str
@@ -98,6 +137,7 @@ class DocumentMetadata(StrictModel):
     source_url: str
     final_url: Optional[str]
     captured_at: Optional[datetime]
+    regulatory_context: Optional[RegulatoryContextMetadata] = None
 
 
 class QueryResult(StrictModel):

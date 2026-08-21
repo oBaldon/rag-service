@@ -15,6 +15,7 @@ from intelireg.semantic_vocabulary import (
     search_terms_for_concepts,
     semantic_concept_coverage,
 )
+from intelireg.regulatory_applicability import attach_regulatory_context
 from intelireg.regulatory_identifiers import (
     RegulatoryIdentifier,
     family_search_terms,
@@ -708,6 +709,9 @@ def retrieval_debug_summary(
         "semantic_concept_lookup_enabled": bool(
             settings.SEMANTIC_CONCEPT_LOOKUP_ENABLED
         ),
+        "regulatory_applicability_enabled": bool(
+            settings.REGULATORY_APPLICABILITY_ENABLED
+        ),
         "rerank_enabled": bool(settings.RERANK_ENABLED),
         "diversity_enabled": bool(settings.RERANK_DIVERSITY_ENABLED),
         "result_count": len(rows),
@@ -1100,9 +1104,16 @@ def hybrid_retrieve_rrf(
         results,
         exact_candidates + semantic_candidates,
     )
-    return rerank_candidates(
+    ranked = rerank_candidates(
         question,
         merged,
         top_k=top_k,
         query_expansion=expansion,
+    )
+    return attach_regulatory_context(
+        ranked,
+        enabled=settings.REGULATORY_APPLICABILITY_ENABLED,
+        max_relations_per_document=(
+            settings.REGULATORY_APPLICABILITY_MAX_RELATIONS_PER_DOCUMENT
+        ),
     )

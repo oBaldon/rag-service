@@ -1,22 +1,92 @@
 {
-  "schema_version": 1,
-  "vocabulary_version": "semantic-v1",
+  "schema_version": 3,
+  "vocabulary_version": "semantic-v2.0-mvp-seed",
   "language": "pt-BR",
-  "description": "Vocabulário semântico regulatório controlado do InteliReg. Alterações devem ser revisadas por especialistas de domínio.",
+  "description": "Seed governado de vocabulário semântico regulatório do InteliReg para os cinco processos do MVP. Conceitos permanecem pending_domain_review até homologação por especialistas. Fontes oficiais são referência terminológica e não substituem validação regulatória.",
+  "sources": [
+    {
+      "id": "ANVISA-REG-01",
+      "label": "Registro de Medicamentos Novos e Inovadores",
+      "url": "https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/medicamentos/medicamentos-novos/registro-de-medicamentos-novos",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para registro, medicamentos novos/inovadores e IFA."
+    },
+    {
+      "id": "ANVISA-REG-02",
+      "label": "Conceitos e definições de medicamentos",
+      "url": "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/conceitos-e-definicoes",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial de apoio terminológico para categorias regulatórias de medicamentos."
+    },
+    {
+      "id": "ANVISA-REG-03",
+      "label": "Medicamentos Genéricos",
+      "url": "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/genericos",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial de apoio terminológico para medicamentos genéricos."
+    },
+    {
+      "id": "ANVISA-REG-04",
+      "label": "Medicamentos Similares",
+      "url": "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/similares",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial de apoio terminológico para medicamentos similares e referência."
+    },
+    {
+      "id": "ANVISA-POST-01",
+      "label": "Alteração pós-registro de medicamentos",
+      "url": "https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/medicamentos/alteracao-pos-registro/",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para mudanças pós-registro."
+    },
+    {
+      "id": "ANVISA-AFE-01",
+      "label": "Autorização de Funcionamento (AFE) - Informações gerais",
+      "url": "https://www.gov.br/anvisa/pt-br/acessoainformacao/perguntasfrequentes/administrativo/autorizacao-de-funcionamento-afe-ou-ae/autorizacao-de-funcionamento-afe-ou-ae",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para AFE e atividades sujeitas à autorização."
+    },
+    {
+      "id": "ANVISA-CBPF-01",
+      "label": "Certificado de Boas Práticas de Fabricação (CBPF)",
+      "url": "https://www.gov.br/anvisa/pt-br/acessoainformacao/perguntasfrequentes/administrativo/certificados-de-boas-praticas/cbpf",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para CBPF, unidade fabril, linha de produção e inspeção."
+    },
+    {
+      "id": "ANVISA-CLIN-01",
+      "label": "Pesquisa Clínica",
+      "url": "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/pesquisaclinica",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para pesquisa clínica."
+    },
+    {
+      "id": "ANVISA-CLIN-02",
+      "label": "Guias e manuais de pesquisa clínica",
+      "url": "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/pesquisaclinica/anuencia-em-pesquisa-clinica/guias-e-manuais",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para DDCM, DEEC e documentação de pesquisa clínica."
+    },
+    {
+      "id": "ANVISA-REG-05",
+      "label": "Marco regulatório para avaliação de segurança e eficácia",
+      "url": "https://www.gov.br/anvisa/pt-br/setorregulado/regularizacao/medicamentos/seguranca-e-eficacia-de-medicamentos-sinteticos/legislacao/marco-regulatorio-para-avaliacao-de-seguranca-e-eficacia",
+      "retrieved_at": "2026-08-20",
+      "notes": "Fonte oficial usada como referência terminológica para segurança, eficácia, qualidade e harmonização ICH."
+    }
+  ],
   "concepts": [
     {
       "id": "ich_harmonizacao",
       "label": "ICH e harmonização farmacêutica internacional",
       "enabled": true,
+      "priority": "P0",
       "aliases": [
         "ICH",
         "International Council for Harmonisation",
         "harmonização farmacêutica",
-        "harmonizacao farmaceutica",
         "harmonização internacional farmacêutica",
-        "harmonizacao internacional farmaceutica",
-        "fóruns internacionais de harmonização farmacêutica",
-        "foruns internacionais de harmonizacao farmaceutica"
+        "fóruns internacionais de harmonização farmacêutica"
       ],
       "query_expansions": [
         "ICH",
@@ -30,18 +100,1738 @@
         "harmonização farmacêutica internacional",
         "International Council for Harmonisation"
       ],
-      "notes": "Conceito inicial validado pela bateria T05/T08/T09. Revisar e ampliar com especialistas."
+      "domains": [
+        "harmonizacao_internacional"
+      ],
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-05"
+      ],
+      "notes": "Conceito já validado pela bateria T05/T08/T09; ainda pendente de homologação formal do domínio.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "regularizacao_produto",
+      "label": "Regularização de medicamentos e produtos",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "regularização de medicamento",
+        "regularização de medicamentos",
+        "regularização de produto",
+        "regularização de produtos"
+      ],
+      "query_expansions": [
+        "regularização sanitária",
+        "registro e pós-registro de medicamentos"
+      ],
+      "embedding_terms": [
+        "regularização de medicamentos",
+        "regularização sanitária de produtos"
+      ],
+      "domains": [
+        "regularizacao_produtos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "peticionamento_regulatorio",
+      "label": "Peticionamento regulatório",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "peticionamento regulatório",
+        "petição regulatória",
+        "petições regulatórias",
+        "protocolo de petição"
+      ],
+      "query_expansions": [
+        "peticionamento na Anvisa",
+        "protocolo regulatório",
+        "assunto de petição"
+      ],
+      "embedding_terms": [
+        "peticionamento regulatório",
+        "petição sanitária"
+      ],
+      "domains": [
+        "processos_peticoes"
+      ],
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "dossie_regulatorio",
+        "exigencia_regulatoria"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01",
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "dossie_regulatorio",
+      "label": "Dossiê regulatório",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "dossiê regulatório",
+        "dossie regulatorio",
+        "documentação regulatória",
+        "documentacao regulatoria"
+      ],
+      "query_expansions": [
+        "dossiê técnico",
+        "documentação para submissão regulatória"
+      ],
+      "embedding_terms": [
+        "dossiê regulatório",
+        "documentação regulatória"
+      ],
+      "domains": [
+        "documentacao_regulatoria"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "peticionamento_regulatorio"
+      ],
+      "source_refs": [
+        "ANVISA-REG-01",
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "exigencia_regulatoria",
+      "label": "Exigência regulatória",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "exigência regulatória",
+        "exigencia regulatoria",
+        "exigência da Anvisa",
+        "cumprimento de exigência"
+      ],
+      "query_expansions": [
+        "exigência técnica",
+        "resposta à exigência",
+        "pendência documental regulatória"
+      ],
+      "embedding_terms": [
+        "exigência regulatória",
+        "pendência documental"
+      ],
+      "domains": [
+        "processos_peticoes"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "afe",
+        "cbpf",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "peticionamento_regulatorio"
+      ],
+      "source_refs": [
+        "ANVISA-REG-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "vigencia_normativa",
+      "label": "Vigência normativa",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "vigência da norma",
+        "vigencia da norma",
+        "norma vigente",
+        "ato vigente",
+        "vigência normativa"
+      ],
+      "query_expansions": [
+        "situação de vigência",
+        "status normativo vigente"
+      ],
+      "embedding_terms": [
+        "vigência normativa",
+        "norma vigente"
+      ],
+      "domains": [
+        "aplicabilidade_normativa"
+      ],
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "revogacao_normativa"
+      ],
+      "source_refs": [
+        "ANVISA-REG-05"
+      ],
+      "notes": "Conceito semântico; não autoriza inferência automática de vigência. A situação normativa deve vir da camada curada de aplicabilidade.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "revogacao_normativa",
+      "label": "Revogação normativa",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "norma revogada",
+        "ato revogado",
+        "revogação da norma",
+        "revogacao da norma",
+        "revogação normativa"
+      ],
+      "query_expansions": [
+        "revogada por",
+        "revogação de ato normativo"
+      ],
+      "embedding_terms": [
+        "revogação normativa",
+        "ato revogado"
+      ],
+      "domains": [
+        "aplicabilidade_normativa"
+      ],
+      "regulatory_processes": [
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "vigencia_normativa"
+      ],
+      "source_refs": [
+        "ANVISA-REG-05"
+      ],
+      "notes": "Conceito semântico; relações de revogação efetivas devem ser curadas na camada de aplicabilidade regulatória.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "risco_sanitario",
+      "label": "Risco sanitário",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "risco sanitário",
+        "risco sanitario",
+        "avaliação de risco sanitário",
+        "avaliacao de risco sanitario"
+      ],
+      "query_expansions": [
+        "abordagem baseada em risco",
+        "criticidade sanitária"
+      ],
+      "embedding_terms": [
+        "risco sanitário",
+        "avaliação baseada em risco"
+      ],
+      "domains": [
+        "risco_regulatorio"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "afe",
+        "cbpf",
+        "pesquisa_clinica",
+        "transversal"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-05"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "seguranca_eficacia",
+      "label": "Segurança e eficácia de medicamentos",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "segurança e eficácia",
+        "eficácia e segurança",
+        "avaliacao de segurança e eficácia",
+        "avaliação de segurança e eficácia",
+        "relação benefício-risco"
+      ],
+      "query_expansions": [
+        "segurança do medicamento",
+        "eficácia do medicamento",
+        "avaliação benefício-risco"
+      ],
+      "embedding_terms": [
+        "segurança e eficácia",
+        "benefício-risco"
+      ],
+      "domains": [
+        "seguranca_eficacia"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-05",
+        "ANVISA-REG-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "qualidade_farmaceutica",
+      "label": "Qualidade farmacêutica",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "qualidade farmacêutica",
+        "qualidade farmaceutica",
+        "tecnologia farmacêutica",
+        "tecnologia farmaceutica"
+      ],
+      "query_expansions": [
+        "qualidade do medicamento",
+        "dados de qualidade",
+        "desenvolvimento farmacêutico"
+      ],
+      "embedding_terms": [
+        "qualidade farmacêutica",
+        "tecnologia farmacêutica",
+        "desenvolvimento farmacêutico"
+      ],
+      "domains": [
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-01",
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "registro_medicamento",
+      "label": "Registro de medicamento",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "registro de medicamento",
+        "registro de medicamentos",
+        "registrar medicamento",
+        "registro sanitário de medicamento"
+      ],
+      "query_expansions": [
+        "regularização de medicamento",
+        "pedido de registro de medicamento"
+      ],
+      "embedding_terms": [
+        "registro de medicamento",
+        "regularização sanitária de medicamento"
+      ],
+      "domains": [
+        "registro"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_novo",
+      "label": "Medicamento novo",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "medicamento novo",
+        "medicamentos novos",
+        "registro de medicamento novo"
+      ],
+      "query_expansions": [
+        "nova molécula",
+        "novo insumo farmacêutico ativo",
+        "registro de medicamento novo"
+      ],
+      "embedding_terms": [
+        "medicamento novo",
+        "nova molécula"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_inovador"
+      ],
+      "source_refs": [
+        "ANVISA-REG-01",
+        "ANVISA-REG-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_inovador",
+      "label": "Medicamento inovador",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "medicamento inovador",
+        "medicamentos inovadores",
+        "registro de medicamento inovador"
+      ],
+      "query_expansions": [
+        "nova associação",
+        "nova via de administração",
+        "nova concentração",
+        "nova indicação terapêutica"
+      ],
+      "embedding_terms": [
+        "medicamento inovador",
+        "inovação farmacêutica"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_novo"
+      ],
+      "source_refs": [
+        "ANVISA-REG-01",
+        "ANVISA-REG-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_generico",
+      "label": "Medicamento genérico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "medicamento genérico",
+        "medicamentos genéricos",
+        "generico de medicamento",
+        "registro de genérico"
+      ],
+      "query_expansions": [
+        "genérico",
+        "medicamento de referência",
+        "bioequivalência"
+      ],
+      "embedding_terms": [
+        "medicamento genérico",
+        "genérico"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_referencia",
+        "bioequivalencia",
+        "equivalencia_farmaceutica"
+      ],
+      "source_refs": [
+        "ANVISA-REG-03",
+        "ANVISA-REG-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_similar",
+      "label": "Medicamento similar",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "medicamento similar",
+        "medicamentos similares",
+        "registro de similar"
+      ],
+      "query_expansions": [
+        "similar",
+        "medicamento de referência",
+        "equivalência terapêutica"
+      ],
+      "embedding_terms": [
+        "medicamento similar",
+        "similar"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_referencia",
+        "bioequivalencia",
+        "equivalencia_farmaceutica"
+      ],
+      "source_refs": [
+        "ANVISA-REG-04",
+        "ANVISA-REG-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_referencia",
+      "label": "Medicamento de referência",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "medicamento de referência",
+        "medicamentos de referência",
+        "produto de referência"
+      ],
+      "query_expansions": [
+        "medicamento referência",
+        "comparador de referência"
+      ],
+      "embedding_terms": [
+        "medicamento de referência"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_generico",
+        "medicamento_similar"
+      ],
+      "source_refs": [
+        "ANVISA-REG-02",
+        "ANVISA-REG-04"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_biologico",
+      "label": "Medicamento ou produto biológico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "medicamento biológico",
+        "medicamentos biológicos",
+        "produto biológico",
+        "produtos biológicos"
+      ],
+      "query_expansions": [
+        "medicamento biológico",
+        "produto biológico"
+      ],
+      "embedding_terms": [
+        "medicamento biológico",
+        "produto biológico"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_biossimilar"
+      ],
+      "source_refs": [
+        "ANVISA-REG-02",
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "medicamento_biossimilar",
+      "label": "Medicamento biossimilar",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "medicamento biossimilar",
+        "medicamentos biossimilares",
+        "produto biossimilar",
+        "produtos biossimilares"
+      ],
+      "query_expansions": [
+        "biossimilar",
+        "produto biológico comparador"
+      ],
+      "embedding_terms": [
+        "medicamento biossimilar",
+        "biossimilar"
+      ],
+      "domains": [
+        "categorias_medicamentos"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "medicamento_biologico"
+      ],
+      "source_refs": [
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "insumo_farmaceutico_ativo",
+      "label": "Insumo Farmacêutico Ativo (IFA)",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "insumo farmacêutico ativo",
+        "insumos farmacêuticos ativos",
+        "IFA",
+        "ingrediente farmacêutico ativo",
+        "active pharmaceutical ingredient"
+      ],
+      "query_expansions": [
+        "IFA",
+        "insumo farmacêutico ativo",
+        "substância ativa farmacêutica"
+      ],
+      "embedding_terms": [
+        "IFA",
+        "insumo farmacêutico ativo",
+        "active pharmaceutical ingredient"
+      ],
+      "domains": [
+        "ifa"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro",
+        "cbpf"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "qualidade_farmaceutica"
+      ],
+      "source_refs": [
+        "ANVISA-REG-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "equivalencia_farmaceutica",
+      "label": "Equivalência farmacêutica",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "equivalência farmacêutica",
+        "equivalencia farmaceutica",
+        "estudo de equivalência farmacêutica",
+        "estudos de equivalência farmacêutica"
+      ],
+      "query_expansions": [
+        "equivalência farmacêutica",
+        "comparação farmacêutica"
+      ],
+      "embedding_terms": [
+        "equivalência farmacêutica"
+      ],
+      "domains": [
+        "equivalencia"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "bioequivalencia",
+        "medicamento_generico",
+        "medicamento_similar"
+      ],
+      "source_refs": [
+        "ANVISA-REG-04"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "bioequivalencia",
+      "label": "Bioequivalência",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "bioequivalência",
+        "bioequivalencia",
+        "estudo de bioequivalência",
+        "estudos de bioequivalência"
+      ],
+      "query_expansions": [
+        "bioequivalência",
+        "biodisponibilidade relativa"
+      ],
+      "embedding_terms": [
+        "bioequivalência",
+        "biodisponibilidade relativa"
+      ],
+      "domains": [
+        "equivalencia"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento"
+      ],
+      "parent_concepts": [
+        "registro_medicamento"
+      ],
+      "related_concepts": [
+        "equivalencia_farmaceutica",
+        "medicamento_generico",
+        "medicamento_similar"
+      ],
+      "source_refs": [
+        "ANVISA-REG-04"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "estabilidade_medicamento",
+      "label": "Estudos de estabilidade de medicamentos",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "estudo de estabilidade",
+        "estudos de estabilidade",
+        "estabilidade do medicamento",
+        "estabilidade de medicamentos"
+      ],
+      "query_expansions": [
+        "estabilidade acelerada",
+        "estabilidade de longa duração",
+        "prazo de validade"
+      ],
+      "embedding_terms": [
+        "estabilidade de medicamentos",
+        "estudo de estabilidade"
+      ],
+      "domains": [
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "qualidade_farmaceutica",
+        "mudanca_prazo_validade"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "metodo_analitico",
+      "label": "Método analítico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "método analítico",
+        "metodo analitico",
+        "métodos analíticos",
+        "metodos analiticos",
+        "metodologia analítica"
+      ],
+      "query_expansions": [
+        "método de análise",
+        "procedimento analítico"
+      ],
+      "embedding_terms": [
+        "método analítico",
+        "procedimento analítico"
+      ],
+      "domains": [
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "validacao_metodo_analitico",
+        "mudanca_metodo_analitico"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "validacao_metodo_analitico",
+      "label": "Validação de método analítico",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "validação de método analítico",
+        "validacao de metodo analitico",
+        "validação analítica",
+        "validacao analitica"
+      ],
+      "query_expansions": [
+        "validação de procedimento analítico",
+        "desempenho do método analítico"
+      ],
+      "embedding_terms": [
+        "validação de método analítico",
+        "validação analítica"
+      ],
+      "domains": [
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "metodo_analitico"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "bula_medicamento",
+      "label": "Bula de medicamento",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "bula",
+        "bula de medicamento",
+        "bula do medicamento",
+        "bula para paciente",
+        "bula para profissional de saúde"
+      ],
+      "query_expansions": [
+        "informações de bula",
+        "texto de bula"
+      ],
+      "embedding_terms": [
+        "bula de medicamento",
+        "bula para paciente",
+        "bula para profissional de saúde"
+      ],
+      "domains": [
+        "informacao_produto"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-05"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "rotulagem_medicamento",
+      "label": "Rotulagem de medicamento",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "rotulagem de medicamento",
+        "rotulagem do medicamento",
+        "dizeres de rotulagem",
+        "rótulo do medicamento",
+        "rotulo do medicamento"
+      ],
+      "query_expansions": [
+        "rotulagem",
+        "dizeres de rótulo"
+      ],
+      "embedding_terms": [
+        "rotulagem de medicamento",
+        "dizeres de rotulagem"
+      ],
+      "domains": [
+        "informacao_produto"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-REG-05"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "embalagem_acondicionamento",
+      "label": "Embalagem e acondicionamento do medicamento",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "embalagem do medicamento",
+        "acondicionamento do medicamento",
+        "material de embalagem",
+        "sistema de acondicionamento"
+      ],
+      "query_expansions": [
+        "embalagem primária",
+        "embalagem secundária",
+        "acondicionamento"
+      ],
+      "embedding_terms": [
+        "embalagem de medicamento",
+        "sistema de acondicionamento"
+      ],
+      "domains": [
+        "qualidade",
+        "informacao_produto"
+      ],
+      "regulatory_processes": [
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "mudanca_embalagem"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "alteracao_pos_registro",
+      "label": "Alteração pós-registro",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "alteração pós-registro",
+        "alteracao pos-registro",
+        "mudança pós-registro",
+        "mudanca pos-registro",
+        "pós-registro de medicamentos",
+        "pos registro de medicamentos",
+        "pós-registro",
+        "pos-registro"
+      ],
+      "query_expansions": [
+        "mudança pós-registro",
+        "alteração de registro de medicamento",
+        "pós-registro"
+      ],
+      "embedding_terms": [
+        "alteração pós-registro",
+        "mudança pós-registro"
+      ],
+      "domains": [
+        "pos_registro"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_local_fabricacao",
+      "label": "Mudança de local de fabricação",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de local de fabricação",
+        "alteração de local de fabricação",
+        "inclusão de local de fabricação",
+        "exclusão de local de fabricação"
+      ],
+      "query_expansions": [
+        "local de fabricação",
+        "site fabril",
+        "alteração pós-registro de local de fabricação"
+      ],
+      "embedding_terms": [
+        "mudança de local de fabricação",
+        "local de fabricação"
+      ],
+      "domains": [
+        "pos_registro",
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [
+        "unidade_fabril"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_processo_producao",
+      "label": "Mudança de processo de produção",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de processo de produção",
+        "alteração do processo de produção",
+        "alteração do processo produtivo",
+        "mudança do processo produtivo"
+      ],
+      "query_expansions": [
+        "processo de produção",
+        "processo produtivo",
+        "alteração pós-registro de processo"
+      ],
+      "embedding_terms": [
+        "mudança de processo de produção",
+        "processo produtivo"
+      ],
+      "domains": [
+        "pos_registro",
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_composicao",
+      "label": "Mudança de composição ou fórmula",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de composição",
+        "alteração de composição",
+        "mudança de fórmula",
+        "alteração de fórmula"
+      ],
+      "query_expansions": [
+        "composição do medicamento",
+        "fórmula do medicamento",
+        "alteração pós-registro de composição"
+      ],
+      "embedding_terms": [
+        "mudança de composição",
+        "alteração de fórmula"
+      ],
+      "domains": [
+        "pos_registro",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [
+        "mudanca_excipiente"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_excipiente",
+      "label": "Mudança relacionada a excipiente",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "alteração de excipiente",
+        "mudança de excipiente",
+        "inclusão de excipiente",
+        "exclusão de excipiente"
+      ],
+      "query_expansions": [
+        "excipiente",
+        "alteração pós-registro de excipiente"
+      ],
+      "embedding_terms": [
+        "mudança de excipiente",
+        "excipiente"
+      ],
+      "domains": [
+        "pos_registro",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [
+        "mudanca_composicao"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_especificacao",
+      "label": "Mudança de especificação",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de especificação",
+        "alteração de especificação",
+        "adequação de especificações",
+        "estreitamento de faixa de especificação"
+      ],
+      "query_expansions": [
+        "especificação de qualidade",
+        "alteração pós-registro de especificação"
+      ],
+      "embedding_terms": [
+        "mudança de especificação",
+        "especificação de qualidade"
+      ],
+      "domains": [
+        "pos_registro",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_metodo_analitico",
+      "label": "Mudança de método analítico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de método analítico",
+        "alteração de método analítico",
+        "alteração de metodologia analítica",
+        "mudança de metodologia analítica"
+      ],
+      "query_expansions": [
+        "método analítico pós-registro",
+        "alteração pós-registro de método analítico"
+      ],
+      "embedding_terms": [
+        "mudança de método analítico",
+        "método analítico"
+      ],
+      "domains": [
+        "pos_registro",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [
+        "metodo_analitico",
+        "validacao_metodo_analitico"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_embalagem",
+      "label": "Mudança de embalagem",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de embalagem",
+        "alteração de embalagem",
+        "mudança de material de embalagem",
+        "alteração de embalagem primária",
+        "alteração de embalagem secundária"
+      ],
+      "query_expansions": [
+        "embalagem primária",
+        "embalagem secundária",
+        "alteração pós-registro de embalagem"
+      ],
+      "embedding_terms": [
+        "mudança de embalagem",
+        "embalagem primária",
+        "embalagem secundária"
+      ],
+      "domains": [
+        "pos_registro",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [
+        "embalagem_acondicionamento"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_prazo_validade",
+      "label": "Mudança de prazo de validade",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "mudança de prazo de validade",
+        "alteração do prazo de validade",
+        "redução do prazo de validade",
+        "ampliação do prazo de validade"
+      ],
+      "query_expansions": [
+        "prazo de validade",
+        "alteração pós-registro de validade"
+      ],
+      "embedding_terms": [
+        "mudança de prazo de validade",
+        "prazo de validade"
+      ],
+      "domains": [
+        "pos_registro",
+        "estabilidade"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [
+        "estabilidade_medicamento"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "mudanca_tamanho_lote",
+      "label": "Mudança de tamanho de lote",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "mudança de tamanho de lote",
+        "alteração de tamanho de lote",
+        "inclusão de tamanho de lote"
+      ],
+      "query_expansions": [
+        "tamanho de lote",
+        "escala de produção",
+        "alteração pós-registro de lote"
+      ],
+      "embedding_terms": [
+        "mudança de tamanho de lote",
+        "tamanho de lote"
+      ],
+      "domains": [
+        "pos_registro",
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "cancelamento_registro",
+      "label": "Cancelamento de registro de medicamento",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "cancelamento de registro",
+        "cancelamento do registro",
+        "cancelar registro de medicamento",
+        "registro de medicamento cancelado"
+      ],
+      "query_expansions": [
+        "cancelamento de registro de medicamento",
+        "registro cancelado"
+      ],
+      "embedding_terms": [
+        "cancelamento de registro",
+        "registro cancelado"
+      ],
+      "domains": [
+        "pos_registro"
+      ],
+      "regulatory_processes": [
+        "pos_registro",
+        "registro_medicamento"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "source_refs": [
+        "ANVISA-POST-01",
+        "ANVISA-REG-03"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "implementacao_imediata",
+      "label": "Mudança pós-registro de implementação imediata",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "implementação imediata",
+        "mudança de implementação imediata",
+        "alteração de implementação imediata",
+        "pos-registro de implementação imediata"
+      ],
+      "query_expansions": [
+        "implementação imediata pós-registro",
+        "mudança pós-registro com implementação imediata"
+      ],
+      "embedding_terms": [
+        "implementação imediata",
+        "pós-registro"
+      ],
+      "domains": [
+        "pos_registro"
+      ],
+      "regulatory_processes": [
+        "pos_registro"
+      ],
+      "parent_concepts": [
+        "alteracao_pos_registro"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-POST-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
     },
     {
       "id": "afe",
       "label": "Autorização de Funcionamento de Empresa (AFE)",
       "enabled": true,
+      "priority": "P0",
       "aliases": [
         "AFE",
         "Autorização de Funcionamento",
-        "Autorizacao de Funcionamento",
-        "autorização para funcionamento",
-        "autorizacao para funcionamento"
+        "Autorização de Funcionamento de Empresa",
+        "autorização para funcionamento"
       ],
       "query_expansions": [
         "AFE",
@@ -52,7 +1842,913 @@
         "AFE",
         "Autorização de Funcionamento de Empresa"
       ],
-      "notes": "Conceito inicial associado ao caso T07; não representa conclusão sobre aplicabilidade normativa."
+      "domains": [
+        "autorizacoes_empresas"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Conceito já validado pela bateria T07; não representa conclusão sobre aplicabilidade normativa.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "atividade_autorizada",
+      "label": "Atividade autorizada na AFE",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "atividade autorizada na AFE",
+        "atividade autorizada pela AFE",
+        "ampliação de atividades da AFE",
+        "ampliar atividade da AFE"
+      ],
+      "query_expansions": [
+        "atividade autorizada",
+        "ampliação de atividades",
+        "AFE"
+      ],
+      "embedding_terms": [
+        "atividade autorizada na AFE",
+        "ampliação de atividades"
+      ],
+      "domains": [
+        "autorizacoes_empresas"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [
+        "afe"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "afe_fabricacao",
+      "label": "AFE para atividade de fabricação",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "AFE para fabricação",
+        "atividade de fabricação na AFE",
+        "autorização para fabricar medicamentos",
+        "empresa fabricante com AFE"
+      ],
+      "query_expansions": [
+        "fabricação de medicamentos",
+        "atividade de fabricação",
+        "AFE"
+      ],
+      "embedding_terms": [
+        "AFE fabricação",
+        "atividade de fabricação"
+      ],
+      "domains": [
+        "autorizacoes_empresas",
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [
+        "afe"
+      ],
+      "related_concepts": [
+        "cbpf"
+      ],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "afe_importacao",
+      "label": "AFE para atividade de importação",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "AFE para importação",
+        "atividade de importação na AFE",
+        "autorização para importar medicamentos",
+        "empresa importadora de medicamentos"
+      ],
+      "query_expansions": [
+        "importação de medicamentos",
+        "atividade de importação",
+        "AFE"
+      ],
+      "embedding_terms": [
+        "AFE importação",
+        "atividade de importação"
+      ],
+      "domains": [
+        "autorizacoes_empresas",
+        "importacao"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [
+        "afe"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "afe_distribuicao",
+      "label": "AFE para atividade de distribuição",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "AFE para distribuição",
+        "atividade de distribuição na AFE",
+        "autorização para distribuir medicamentos",
+        "empresa distribuidora de medicamentos"
+      ],
+      "query_expansions": [
+        "distribuição de medicamentos",
+        "atividade de distribuição",
+        "AFE"
+      ],
+      "embedding_terms": [
+        "AFE distribuição",
+        "atividade de distribuição"
+      ],
+      "domains": [
+        "autorizacoes_empresas",
+        "distribuicao"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [
+        "afe"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "afe_armazenamento",
+      "label": "AFE para atividade de armazenamento",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "AFE para armazenamento",
+        "atividade de armazenamento na AFE",
+        "autorização para armazenar medicamentos",
+        "empresa armazenadora de medicamentos"
+      ],
+      "query_expansions": [
+        "armazenamento de medicamentos",
+        "armazenagem de medicamentos",
+        "AFE"
+      ],
+      "embedding_terms": [
+        "AFE armazenamento",
+        "atividade de armazenamento"
+      ],
+      "domains": [
+        "autorizacoes_empresas",
+        "armazenamento"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [
+        "afe"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "afe_transporte",
+      "label": "AFE para atividade de transporte",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "AFE para transporte",
+        "atividade de transporte na AFE",
+        "autorização para transportar medicamentos",
+        "transportadora de medicamentos"
+      ],
+      "query_expansions": [
+        "transporte de medicamentos",
+        "atividade de transporte",
+        "AFE"
+      ],
+      "embedding_terms": [
+        "AFE transporte",
+        "atividade de transporte"
+      ],
+      "domains": [
+        "autorizacoes_empresas",
+        "transporte"
+      ],
+      "regulatory_processes": [
+        "afe"
+      ],
+      "parent_concepts": [
+        "afe"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-AFE-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "cbpf",
+      "label": "Certificado de Boas Práticas de Fabricação (CBPF)",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "CBPF",
+        "Certificado de Boas Práticas de Fabricação",
+        "Certificação de Boas Práticas de Fabricação",
+        "certificação de BPF"
+      ],
+      "query_expansions": [
+        "CBPF",
+        "Boas Práticas de Fabricação",
+        "certificação de fabricante"
+      ],
+      "embedding_terms": [
+        "CBPF",
+        "Certificado de Boas Práticas de Fabricação",
+        "BPF"
+      ],
+      "domains": [
+        "boas_praticas",
+        "certificacao"
+      ],
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "boas_praticas_fabricacao",
+        "inspecao_sanitaria"
+      ],
+      "source_refs": [
+        "ANVISA-CBPF-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "boas_praticas_fabricacao",
+      "label": "Boas Práticas de Fabricação (BPF)",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "Boas Práticas de Fabricação",
+        "boas praticas de fabricacao",
+        "requisitos de boas práticas de fabricação",
+        "cumprimento de boas práticas de fabricação"
+      ],
+      "query_expansions": [
+        "BPF",
+        "boas práticas de fabricação de medicamentos"
+      ],
+      "embedding_terms": [
+        "BPF",
+        "Boas Práticas de Fabricação"
+      ],
+      "domains": [
+        "boas_praticas",
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "cbpf",
+        "inspecao_sanitaria"
+      ],
+      "source_refs": [
+        "ANVISA-CBPF-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "inspecao_sanitaria",
+      "label": "Inspeção sanitária de fabricação",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "inspeção sanitária",
+        "inspecao sanitaria",
+        "inspeção de boas práticas",
+        "relatório de inspeção sanitária"
+      ],
+      "query_expansions": [
+        "inspeção de BPF",
+        "relatório de inspeção",
+        "inspeção de fabricante"
+      ],
+      "embedding_terms": [
+        "inspeção sanitária",
+        "inspeção de BPF"
+      ],
+      "domains": [
+        "inspecao"
+      ],
+      "regulatory_processes": [
+        "cbpf",
+        "afe"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "cbpf",
+        "boas_praticas_fabricacao"
+      ],
+      "source_refs": [
+        "ANVISA-CBPF-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "unidade_fabril",
+      "label": "Unidade ou estabelecimento fabril",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "unidade fabril",
+        "site fabril",
+        "estabelecimento fabril",
+        "planta fabril"
+      ],
+      "query_expansions": [
+        "local de fabricação",
+        "estabelecimento fabricante"
+      ],
+      "embedding_terms": [
+        "unidade fabril",
+        "site fabril",
+        "estabelecimento fabricante"
+      ],
+      "domains": [
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento",
+        "pos_registro"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "linha_producao",
+        "mudanca_local_fabricacao"
+      ],
+      "source_refs": [
+        "ANVISA-CBPF-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "linha_producao",
+      "label": "Linha de produção",
+      "enabled": true,
+      "priority": "P1",
+      "aliases": [
+        "linha de produção",
+        "linhas de produção",
+        "linha produtiva"
+      ],
+      "query_expansions": [
+        "linha de fabricação",
+        "escopo de linha de produção"
+      ],
+      "embedding_terms": [
+        "linha de produção",
+        "linha de fabricação"
+      ],
+      "domains": [
+        "fabricacao"
+      ],
+      "regulatory_processes": [
+        "cbpf",
+        "registro_medicamento"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [
+        "unidade_fabril",
+        "cbpf"
+      ],
+      "source_refs": [
+        "ANVISA-CBPF-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "pesquisa_clinica",
+      "label": "Pesquisa clínica de medicamentos",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "pesquisa clínica",
+        "pesquisas clínicas",
+        "pesquisa clínica de medicamentos",
+        "desenvolvimento clínico de medicamento"
+      ],
+      "query_expansions": [
+        "desenvolvimento clínico",
+        "ensaio clínico",
+        "pesquisa clínica regulatória"
+      ],
+      "embedding_terms": [
+        "pesquisa clínica",
+        "desenvolvimento clínico de medicamento"
+      ],
+      "domains": [
+        "pesquisa_clinica"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "ensaio_clinico",
+      "label": "Ensaio clínico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "ensaio clínico",
+        "ensaios clínicos",
+        "estudo clínico",
+        "estudos clínicos"
+      ],
+      "query_expansions": [
+        "protocolo clínico",
+        "estudo clínico com medicamento"
+      ],
+      "embedding_terms": [
+        "ensaio clínico",
+        "estudo clínico"
+      ],
+      "domains": [
+        "pesquisa_clinica"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "pesquisa_clinica"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "ddcm",
+      "label": "Dossiê de Desenvolvimento Clínico de Medicamento (DDCM)",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "DDCM",
+        "Dossiê de Desenvolvimento Clínico de Medicamento",
+        "dossie de desenvolvimento clinico de medicamento"
+      ],
+      "query_expansions": [
+        "DDCM",
+        "desenvolvimento clínico de medicamento",
+        "dossiê de desenvolvimento clínico"
+      ],
+      "embedding_terms": [
+        "DDCM",
+        "Dossiê de Desenvolvimento Clínico de Medicamento"
+      ],
+      "domains": [
+        "pesquisa_clinica",
+        "documentacao_regulatoria"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "pesquisa_clinica"
+      ],
+      "related_concepts": [
+        "deec",
+        "produto_sob_investigacao"
+      ],
+      "source_refs": [
+        "ANVISA-CLIN-01",
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "deec",
+      "label": "Dossiê Específico de Ensaio Clínico (DEEC)",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "DEEC",
+        "Dossiê Específico de Ensaio Clínico",
+        "dossie especifico de ensaio clinico"
+      ],
+      "query_expansions": [
+        "DEEC",
+        "dossiê específico do ensaio clínico"
+      ],
+      "embedding_terms": [
+        "DEEC",
+        "Dossiê Específico de Ensaio Clínico"
+      ],
+      "domains": [
+        "pesquisa_clinica",
+        "documentacao_regulatoria"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "pesquisa_clinica"
+      ],
+      "related_concepts": [
+        "ddcm",
+        "protocolo_ensaio_clinico"
+      ],
+      "source_refs": [
+        "ANVISA-CLIN-01",
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "produto_sob_investigacao",
+      "label": "Produto sob investigação",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "produto sob investigação",
+        "produto sob investigacao",
+        "medicamento sob investigação",
+        "medicamento experimental",
+        "produto investigacional"
+      ],
+      "query_expansions": [
+        "produto sob investigação",
+        "medicamento experimental"
+      ],
+      "embedding_terms": [
+        "produto sob investigação",
+        "medicamento experimental"
+      ],
+      "domains": [
+        "pesquisa_clinica",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "pesquisa_clinica"
+      ],
+      "related_concepts": [
+        "ddcm"
+      ],
+      "source_refs": [
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "protocolo_ensaio_clinico",
+      "label": "Protocolo de ensaio clínico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "protocolo de ensaio clínico",
+        "protocolo de estudo clínico",
+        "protocolo clínico",
+        "protocolo do estudo clínico"
+      ],
+      "query_expansions": [
+        "protocolo do ensaio",
+        "documentação do protocolo clínico"
+      ],
+      "embedding_terms": [
+        "protocolo de ensaio clínico",
+        "protocolo clínico"
+      ],
+      "domains": [
+        "pesquisa_clinica"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "pesquisa_clinica"
+      ],
+      "related_concepts": [
+        "emenda_substancial_protocolo",
+        "deec"
+      ],
+      "source_refs": [
+        "ANVISA-CLIN-01",
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "emenda_substancial_protocolo",
+      "label": "Emenda substancial ao protocolo clínico",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "emenda substancial ao protocolo",
+        "emenda substancial de protocolo",
+        "emenda substancial ao protocolo clínico"
+      ],
+      "query_expansions": [
+        "emenda substancial",
+        "alteração substancial do protocolo clínico"
+      ],
+      "embedding_terms": [
+        "emenda substancial ao protocolo clínico"
+      ],
+      "domains": [
+        "pesquisa_clinica"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "protocolo_ensaio_clinico"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "modificacao_substancial_produto_investigacao",
+      "label": "Modificação substancial ao produto sob investigação",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "modificação substancial ao produto sob investigação",
+        "modificacao substancial ao produto sob investigacao",
+        "modificação substancial do produto sob investigação"
+      ],
+      "query_expansions": [
+        "modificação substancial do produto investigacional",
+        "alteração do produto sob investigação"
+      ],
+      "embedding_terms": [
+        "modificação substancial ao produto sob investigação"
+      ],
+      "domains": [
+        "pesquisa_clinica",
+        "qualidade"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "produto_sob_investigacao"
+      ],
+      "related_concepts": [],
+      "source_refs": [
+        "ANVISA-CLIN-01"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
+    },
+    {
+      "id": "boas_praticas_clinicas",
+      "label": "Boas Práticas Clínicas",
+      "enabled": true,
+      "priority": "P0",
+      "aliases": [
+        "Boas Práticas Clínicas",
+        "boas praticas clinicas",
+        "BPC em ensaios clínicos",
+        "Good Clinical Practice",
+        "GCP"
+      ],
+      "query_expansions": [
+        "BPC",
+        "boas práticas clínicas ICH",
+        "GCP"
+      ],
+      "embedding_terms": [
+        "Boas Práticas Clínicas",
+        "GCP"
+      ],
+      "domains": [
+        "pesquisa_clinica",
+        "boas_praticas"
+      ],
+      "regulatory_processes": [
+        "pesquisa_clinica"
+      ],
+      "parent_concepts": [
+        "pesquisa_clinica"
+      ],
+      "related_concepts": [
+        "ich_harmonizacao"
+      ],
+      "source_refs": [
+        "ANVISA-CLIN-02"
+      ],
+      "notes": "Seed técnico inicial; requer revisão e homologação por especialista regulatório.",
+      "governance": {
+        "lifecycle": "active",
+        "review_status": "pending_domain_review",
+        "owner_role": "especialista_regulatorio",
+        "reviewer_role": "",
+        "reviewed_at": null,
+        "change_ref": "RAG-QUALITY-04A/B-SEED"
+      }
     }
   ]
 }

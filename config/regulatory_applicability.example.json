@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "batch_id": "example-empty",
+  "description": "Modelo vazio. Não contém afirmações regulatórias.",
+  "status_assertions": [],
+  "relations": []
+}
