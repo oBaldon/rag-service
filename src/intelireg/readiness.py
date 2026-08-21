@@ -16,6 +16,7 @@ _REQUIRED_TABLES = (
     "embedding_chunks",
     "chunk_embeddings",
     "index_profiles",
+    "jobs",
     "rag_runs",
 )
 
@@ -140,6 +141,66 @@ def check_readiness() -> tuple[bool, dict[str, dict[str, Any]]]:
                             ),
                         }
 
+        if "jobs" not in missing_tables:
+            with get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT
+                          COUNT(*) FILTER (
+                            WHERE type = 'IndexVersionJob'
+                              AND status IN ('queued', 'running', 'failed')
+                          )::bigint AS active_jobs,
+                          COUNT(*) FILTER (
+                            WHERE type = 'IndexVersionJob'
+                              AND status = 'running'
+                          )::bigint AS running_jobs
+                        FROM jobs
+                        """
+                    )
+                    queue_row = cur.fetchone()
+                    cur.execute(
+                        """
+                        SELECT COUNT(*)::bigint
+                        FROM (
+                          SELECT
+                            payload->>'version_id' AS version_id,
+                            payload->>'pipeline_version' AS pipeline_version
+                          FROM jobs
+                          WHERE type = 'IndexVersionJob'
+                            AND status IN ('queued', 'running', 'failed')
+                            AND NULLIF(payload->>'version_id', '') IS NOT NULL
+                            AND NULLIF(payload->>'pipeline_version', '') IS NOT NULL
+                          GROUP BY
+                            payload->>'version_id',
+                            payload->>'pipeline_version'
+                          HAVING COUNT(*) > 1
+                        ) d
+                        """
+                    )
+                    duplicate_groups = int(cur.fetchone()[0] or 0)
+
+            active_jobs = int(queue_row[0] or 0)
+            running_jobs = int(queue_row[1] or 0)
+            if duplicate_groups > 0:
+                checks["index_queue"] = {
+                    "status": "degraded",
+                    "detail": (
+                        f"active_jobs={active_jobs}; "
+                        f"running_jobs={running_jobs}; "
+                        f"duplicate_active_groups={duplicate_groups}"
+                    ),
+                }
+            else:
+                checks["index_queue"] = {
+                    "status": "ready",
+                    "detail": (
+                        f"active_jobs={active_jobs}; "
+                        f"running_jobs={running_jobs}; "
+                        "duplicate_active_groups=0"
+                    ),
+                }
+
     except Exception:
         logger.exception("Falha no readiness do PostgreSQL")
         ready = False
@@ -157,6 +218,10 @@ def check_readiness() -> tuple[bool, dict[str, dict[str, Any]]]:
         )
         checks.setdefault(
             "index_profile",
+            {"status": "unknown", "detail": "não verificado"},
+        )
+        checks.setdefault(
+            "index_queue",
             {"status": "unknown", "detail": "não verificado"},
         )
 

@@ -25,7 +25,7 @@ from intelireg.ingest_resilience import (
     failure_record,
     fetch_html_with_retries,
 )
-from intelireg.jobs import enqueue_job
+from intelireg.jobs import enqueue_index_version_job
 
 
 # --------- Normalização e utilitários ---------
@@ -1179,16 +1179,19 @@ def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
 
                 if args.reindex_existing:
                     context.stage = "enqueue"
-                    job_id = enqueue_job(
-                        "IndexVersionJob",
+                    enqueue_result = enqueue_index_version_job(
                         {
                             "version_id": existing_version,
                             "pipeline_version": args.pipeline_version,
                             "embedding_model_id": args.embedding_model_id,
                             "force": True,
-                        },
+                        }
                     )
-                    print(f"[ingest_web] reindex solicitado; enqueued IndexVersionJob job_id={job_id}")
+                    action = "enqueued" if enqueue_result.created else "reused-active"
+                    print(
+                        "[ingest_web] reindex solicitado; "
+                        f"{action} IndexVersionJob job_id={enqueue_result.job_id}"
+                    )
                 return
 
             document_id = find_document_id_by_url(cur, args.url)
@@ -1231,16 +1234,19 @@ def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
                 print(f"[ingest_web] conteúdo já existe (race). version_id existente: {existing_version}")
                 if args.reindex_existing and existing_version:
                     context.stage = "enqueue"
-                    job_id = enqueue_job(
-                        "IndexVersionJob",
+                    enqueue_result = enqueue_index_version_job(
                         {
                             "version_id": existing_version,
                             "pipeline_version": args.pipeline_version,
                             "embedding_model_id": args.embedding_model_id,
                             "force": True,
-                        },
+                        }
                     )
-                    print(f"[ingest_web] reindex solicitado; enqueued IndexVersionJob job_id={job_id}")
+                    action = "enqueued" if enqueue_result.created else "reused-active"
+                    print(
+                        "[ingest_web] reindex solicitado; "
+                        f"{action} IndexVersionJob job_id={enqueue_result.job_id}"
+                    )
                 return
 
             cur.executemany(
@@ -1257,19 +1263,21 @@ def _run_ingest(args: argparse.Namespace, context: IngestContext) -> None:
 
     # 4) enfileirar indexação
     context.stage = "enqueue"
-    job_id = enqueue_job(
-        "IndexVersionJob",
+    enqueue_result = enqueue_index_version_job(
         {
             "version_id": version_id,
             "pipeline_version": args.pipeline_version,
             "embedding_model_id": args.embedding_model_id,
-        },
+        }
     )
 
     print(
         f"[ingest_web] ok version_id={version_id} document_id={document_id} nodes={len(node_rows)} content_hash={content_hash}"
     )
-    print(f"[ingest_web] enqueued IndexVersionJob job_id={job_id}")
+    action = "enqueued" if enqueue_result.created else "reused-active"
+    print(
+        f"[ingest_web] {action} IndexVersionJob job_id={enqueue_result.job_id}"
+    )
 
 
 def main() -> int:

@@ -197,3 +197,27 @@ Depois que o worker concluir todos os jobs, configure a API com
 `PIPELINE_VERSION=mvp-v2-semantic-v1` e rode novamente T01–T09.
 
 Consulte `docs/semantic_vocabulary.md`.
+
+
+## Idempotência da reindexação
+
+A fila de `IndexVersionJob` possui idempotência por `version_id + pipeline_version`.
+
+Antes de executar um lote, use o dry-run:
+
+```bash
+PYTHONPATH=src python -m intelireg.cli.enqueue_reindex_all \
+  --pipeline-version mvp-v2-semantic-v1
+```
+
+Observe `missing_pipeline`, `already_active`, `eligible_to_enqueue` e
+`active_duplicate_groups`.
+
+Depois de aplicar a migration de idempotência, valide a restrição no banco sem
+deixar dados de teste:
+
+```bash
+PYTHONPATH=src python golden/check_reindex_idempotency.py
+```
+
+Consulte `docs/reindex_idempotency.md`.
