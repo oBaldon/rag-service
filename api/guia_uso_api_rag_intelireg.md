@@ -2,8 +2,11 @@
 
 Este documento descreve, de forma prática, como consumir a API do serviço RAG (retrieval híbrido + resposta extrativa simples).
 
-> **Base URL (produção local no mesmo host):** `http://127.0.0.1:8088`
-> (equivalente a `http://localhost:8088` no próprio servidor)
+> **Base URL na rede Docker compartilhada:** `http://rag-api:8088`.
+> A porta não é publicada no host. Os exemplos curl exigem cliente na mesma rede;
+> para verificar prontidão no host, execute `./scripts/smoke_api.sh`.
+> Consultas válidas de query/ask persistem auditoria; execute-as no ambiente autorizado.
+> A operação documental descrita na seção 13 é somente leitura.
 
 ---
 
@@ -26,7 +29,9 @@ A API pode exigir o header `x-api-key`.
 x-api-key: uma_chave_interna
 ```
 
-> Em produção interna, recomenda-se **sempre** habilitar `RAG_API_KEY` e manter a API bindada apenas em `127.0.0.1`.
+> Em produção interna, habilite `RAG_AUTH_REQUIRED=true` e configure `RAG_API_KEY`.
+> A API escuta em `0.0.0.0` dentro do container; o isolamento externo é feito pela
+> rede Docker e pela ausência de porta publicada no host.
 
 ---
 
@@ -101,7 +106,7 @@ Os endpoints `/v1/rag/query` e `/v1/rag/ask` aceitam parâmetros para controlar 
 ### 6.1 Healthcheck
 
 ```bash
-curl -s http://127.0.0.1:8088/health
+curl -s http://rag-api:8088/health/ready
 ```
 
 Resposta típica:
@@ -123,7 +128,7 @@ Resposta típica:
 ### 7.1 Query mínimo (só pergunta)
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -s -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -140,7 +145,7 @@ Quando usar:
 ### 7.2 Query com parâmetros (FTS + vetorial + RRF)
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -s -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -157,7 +162,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ### 7.3 Query filtrando por `version_id`
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -s -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -172,7 +177,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 ### 7.4 Query com `X-Request-Id` (rastreabilidade)
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -s -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -H "X-Request-Id: req-20260302-0001" \
@@ -189,7 +194,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 **Somente FTS (desliga vetorial):**
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -s -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -203,7 +208,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 **Somente vetorial (desliga FTS):**
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -s -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -217,7 +222,7 @@ curl -s -X POST http://127.0.0.1:8088/v1/rag/query \
 **Caso inválido (ambos desligados) → 400:**
 
 ```bash
-curl -i -X POST http://127.0.0.1:8088/v1/rag/query \
+curl -i -X POST http://rag-api:8088/v1/rag/query \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -235,7 +240,7 @@ curl -i -X POST http://127.0.0.1:8088/v1/rag/query \
 ### 8.1 Ask mínimo
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/ask \
+curl -s -X POST http://rag-api:8088/v1/rag/ask \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -289,7 +294,7 @@ Exemplo de forma (simplificado):
 ### 8.2 Ask com “mais evidências” (maior recall)
 
 ```bash
-curl -s -X POST http://127.0.0.1:8088/v1/rag/ask \
+curl -s -X POST http://rag-api:8088/v1/rag/ask \
   -H "Content-Type: application/json" \
   -H "x-api-key: uma_chave_interna" \
   -d '{
@@ -343,14 +348,17 @@ No InteliReg, o padrão esperado é o **fluxo RAG clássico**:
 
 ## 11) Ver a especificação no Swagger (recomendado)
 
-Abra no navegador:
+Para abrir no navegador do host, configure previamente um override local com
+porta publicada em loopback (`127.0.0.1:8088:8088`) e use `http://localhost:8088/docs`.
+O Compose padrão não publica essa porta. Os endereços abaixo são internos à rede
+Docker e exigem cliente com acesso a ela:
 
-* `http://127.0.0.1:8088/docs`
+* `http://rag-api:8088/docs`
 
 E, se precisar integrar via client generator:
 
-* `http://127.0.0.1:8088/openapi.json`
-* `http://127.0.0.1:8088/redoc`
+* `http://rag-api:8088/openapi.json`
+* `http://rag-api:8088/redoc`
 
 
 
@@ -361,7 +369,7 @@ E, se precisar integrar via client generator:
 A partir da consolidação para integração com o Portal:
 
 - `request_id` é devolvido no header e no corpo;
-- `run_id` é devolvido no corpo e corresponde ao registro em `rag_runs`;
+- em `/query` e `/ask`, `run_id` é devolvido no corpo e corresponde ao registro em `rag_runs`;
 - `version_id` precisa ser UUID válido;
 - os parâmetros de retrieval possuem limites;
 - pipeline e modelo são controlados pelo servidor;
@@ -371,3 +379,15 @@ A partir da consolidação para integração com o Portal:
 - `/ask` publica `source_id` e mantém `sid` como alias legado.
 
 Consulte `docs/api_contract_v1.md` para o contrato canônico.
+
+## 13) Texto documental para resumo no Portal
+
+`POST /v1/rag/document`, com a mesma autenticação e `{question, version_id?}`,
+resolve a norma sem ranking e retorna texto/hash/proveniência de todos os nós
+armazenados. Ambiguidades não escolhem uma candidata arbitrariamente. A operação
+é somente leitura; seu `run_id` não é registro de retrieval em `rag_runs`.
+O Portal usa `RAG_DOCUMENT_URL` com o endpoint completo e gera a síntese na fila.
+
+Veja [contrato específico](../docs/full-document-contract.md). Os resumos têm
+[limitações de seleção e extração](../../intelireg/docs/NORM_SUMMARY.md), mesmo
+quando o hash e os IDs são válidos.

@@ -1,0 +1,6 @@
+# Versões do venv local durante a análise; variante CPU para Docker.
+sentence-transformers==6.1.0
+transformers==5.17.0
+torch==2.14.0+cpu
+fastapi==0.141.1
+uvicorn==0.54.0

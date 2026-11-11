@@ -39,6 +39,10 @@ from intelireg.regulatory_identifiers import (
             date(2013, 3, 28),
         ),
         ("RDC 476/2021", "rdc", 476, None),
+        (
+            "Resolução da Diretoria Colegiada Anvisa no 1.015, de 02/02/2026",
+            "rdc", 1015, date(2026, 2, 2),
+        ),
     ],
 )
 def test_parse_regulatory_identifier(raw, family, number, expected_date):

@@ -16,12 +16,12 @@ operacional, mas não substitui o fluxo RAG + LLM do Portal.
 
 ## 2. Identificadores
 
-Cada requisição possui dois identificadores:
+As requisições de retrieval `/query` e `/ask` possuem dois identificadores:
 
 - `request_id`: correlação ponta a ponta, preferencialmente criada pelo Portal;
 - `run_id`: identificador UUID da execução de retrieval.
 
-Regras:
+Regras de retrieval (para a operação documental, ver seção específica ao final):
 
 1. o serviço aceita `X-Request-Id`;
 2. um valor ausente ou inválido é substituído por UUID;
@@ -270,3 +270,12 @@ Somente `regulatory_status_assertions` e `regulatory_relations` com
 `review_status=approved` são expostos. Relações carregam `direction=outbound`
 quando o documento retornado é a origem canônica e `direction=inbound` quando é
 o alvo.
+
+## Recuperação documental separada
+
+`POST /v1/rag/document` é uma operação aditiva, documentada no
+[contrato documental](full-document-contract.md). Retorna todos os nós de uma
+versão com hash e proveniência, sem top-k ou embeddings. Seu `run_id` é apenas
+correlação e não corresponde a registro em `rag_runs`. As regras de auditoria e
+payload de `/query` e `/ask` acima não devem ser aplicadas a essa operação.
+A geração/resumo pertence ao Portal; este endpoint não chama LLM.

@@ -7,9 +7,9 @@ cd "$REPO_ROOT"
 
 ###############################################################################
 # InteliReg MVP — Query síncrona (somente consulta)
-# Baseado no run_intelireg_mvp.txt (seção 0 + seção 8), adaptado para:
+# Ferramenta manual de avaliação/curadoria, independente do startup Docker:
 # - receber a pergunta via argumento
-# - não tocar no BD (sem reset/ingest/index)
+# - não executar reset/ingest/index; a consulta pode persistir auditoria
 ###############################################################################
 
 if [ "${1:-}" = "" ]; then

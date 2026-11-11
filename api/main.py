@@ -11,6 +11,8 @@ from fastapi.responses import JSONResponse
 from api.auth import require_api_key
 from api.errors import ApiError
 from api.schemas import (
+    FullDocumentRequest,
+    FullDocumentResponse,
     AskRequest,
     AskResponse,
     ErrorResponse,
@@ -295,3 +297,9 @@ def rag_ask(
             code="rag_ask_failed",
             message="A resposta extrativa está temporariamente indisponível.",
         ) from exc
+
+
+@app.post('/v1/rag/document', response_model=FullDocumentResponse, dependencies=[Depends(require_api_key)])
+def full_document(req: FullDocumentRequest, request: Request):
+    from intelireg.full_document import retrieve_document
+    return retrieve_document(req.question, _request_id(request), str(req.version_id) if req.version_id else None)

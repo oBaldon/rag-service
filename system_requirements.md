@@ -2,7 +2,14 @@
 
 # System requirements (InteliReg)
 
-Este projeto depende de alguns componentes do sistema além do `pip install -r requirements.txt`.
+A execução padrão usa Docker Compose; consulte o [README](README.md). O host
+precisa de Docker/Compose e acesso ao PostgreSQL/rede já mantidos pelo Portal.
+Python, PyTorch e dependências de inferência ficam na imagem. Não instale nem
+reinicie PostgreSQL no host para iniciar o RAG dockerizado.
+
+As seções abaixo são referência para desenvolvimento Python e manutenção
+administrativa fora do container. Não representam pré-requisitos do startup Docker;
+bootstrap e criação de extensões exigem autorização e ambiente identificado.
 
 ## 1) Requisitos mínimos
 

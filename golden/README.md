@@ -9,6 +9,16 @@ Esta pasta contém os **scripts do golden set** do InteliReg para o MVP, dividid
 
 ---
 
+## Uso administrativo, separado da operação Docker
+
+Estes scripts não são inicializadores do serviço nem healthchecks. Dependem do
+ambiente de ferramentas no host descrito abaixo e não estão incluídos na imagem
+de runtime. `01_update_kb.sh` altera dados e pode executar reset e administração
+do PostgreSQL no host; não o execute contra a base compartilhada para subir ou
+validar containers. `02_query_rag.sh` pode persistir auditoria de consultas.
+O startup atual é documentado no README da raiz; avaliações exigem ambiente e
+autorização próprios.
+
 ## Pré-requisitos
 
 - `.env` na raiz do projeto (com `DATABASE_URL`, `PG_SUPERUSER_URL`, `PYTHONPATH=src`, etc.)

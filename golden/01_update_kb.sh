@@ -7,7 +7,7 @@ cd "$REPO_ROOT"
 
 ###############################################################################
 # InteliReg MVP — Atualização da KB (reset → ingest → index) + checagens
-# Baseado no run_intelireg_mvp.txt
+# Ferramenta administrativa manual; não é entrypoint Docker.
 #
 # Objetivo (golden set):
 # - Rodar a rotina "BD mágico" (atualização/refresh da KB) independente de query.

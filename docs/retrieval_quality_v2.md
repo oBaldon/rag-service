@@ -132,3 +132,7 @@ deve ser tomada decisão sobre:
 
 Trocar o embedding sem essa medição exigiria reindexação completa e não é
 recomendado como primeira resposta.
+
+## Resumo documental no Portal
+
+O resolver de identificadores no retrieval não equivale a recuperar toda a norma. Pedidos explícitos de resumo usam a operação separada [document](full-document-contract.md), sem alterar o ranking aqui descrito.

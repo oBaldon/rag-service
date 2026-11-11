@@ -1,0 +1,57 @@
+name: intelireg-rag
+
+x-rag: &rag
+  image: ${RAG_IMAGE:-intelireg-rag:local}
+  build:
+    context: .
+  init: true
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    DATABASE_URL: ${RAG_DOCKER_DATABASE_URL:?Configure RAG_DOCKER_DATABASE_URL com db:5432 e as credenciais existentes}
+    PG_SUPERUSER_URL: ""
+    PGCONNECT_TIMEOUT: "10"
+    HF_HOME: /app/storage/hf_cache
+    HF_CACHE_DIR: /app/storage/hf_cache
+    CUDA_VISIBLE_DEVICES: ""
+  volumes:
+    - rag_hf_cache:/app/storage/hf_cache
+  networks:
+    - intelireg
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  stop_grace_period: 60s
+
+services:
+  rag-api:
+    <<: *rag
+    expose:
+      - "8088"
+    healthcheck:
+      test: ["CMD", "python", "docker/healthcheck.py"]
+      interval: 15s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  rag-worker:
+    <<: *rag
+    command: ["python", "-m", "intelireg.workers.index_worker"]
+    profiles: ["indexing"]
+    depends_on:
+      rag-api:
+        condition: service_healthy
+    # Worker não atende HTTP. Estado running indica processo ativo;
+    # prontidão do banco/schema é verificada antes de entrar no loop.
+    healthcheck:
+      disable: true
+
+networks:
+  intelireg:
+    external: true
+    name: ${INTELIREG_DOCKER_NETWORK:-intelireg-local_default}
+
+volumes:
+  rag_hf_cache:

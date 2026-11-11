@@ -45,6 +45,7 @@ _FAMILY_PATTERNS: tuple[tuple[str, re.Pattern[str], tuple[str, ...]], ...] = (
 )
 
 _NUMBER_AFTER_FAMILY_RE = re.compile(
+    r"(?:\s+(?:da\s+)?anvisa\b)?"
     r"(?:\s*[-–—]\s*(?:rdc|in|inc|prt|res))?"
     r"\s*(?:n(?:o|r|umero)?\.?\s*)?"
     r"(?P<number>\d{1,3}(?:\.\d{3})+|\d+)\b"

@@ -1,0 +1,14 @@
+**
+!Dockerfile
+!requirements-docker.lock
+!src/
+!src/**
+!api/
+!api/**
+!config/
+!config/**
+!docker/
+!docker/**
+**/__pycache__/
+**/*.pyc
+**/.env*

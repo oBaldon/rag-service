@@ -147,3 +147,7 @@ Ex.: `node_id`, `path`, `heading_text`, offsets/trechos quando disponível.
     }
   ]
 }
+
+## Distinção da operação documental
+
+Este schema descreve retrieval de chunks; `/v1/rag/document` usa [contrato próprio](full-document-contract.md), com texto integral dos nós/hash e sem auditoria em `rag_runs`. Não presumir que um snapshot documental é um chunk de retrieval.

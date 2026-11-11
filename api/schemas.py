@@ -223,3 +223,29 @@ class ErrorBody(StrictModel):
 
 class ErrorResponse(StrictModel):
     error: ErrorBody
+
+
+class FullDocumentRequest(StrictModel):
+    question: str = Field(min_length=1, max_length=settings.QUESTION_MAX_LENGTH)
+    version_id: Optional[UUID] = None
+
+
+class FullDocumentResponse(StrictModel):
+    schema_version: Literal[1]
+    request_id: str
+    run_id: UUID
+    generated_at: datetime
+    document_id: UUID
+    title: str
+    source_org: str
+    doc_type: str
+    version_id: UUID
+    source_url: str
+    final_url: Optional[str]
+    captured_at: Optional[datetime]
+    source_content_hash: str
+    text: str = Field(min_length=1, max_length=300000)
+    text_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    node_count: int = Field(ge=1)
+    coverage: Literal['all_stored_nodes']
+    limitations: str
